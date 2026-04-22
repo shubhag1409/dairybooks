@@ -8,6 +8,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
+import { showApiError } from "@/lib/dairy";
 
 type Product = {
   id: string;
@@ -29,7 +30,7 @@ export default function Products() {
       .from("products")
       .select("*")
       .order("created_at", { ascending: true });
-    if (error) toast.error(error.message);
+    showApiError(error, "Could not load products");
     setItems((data as Product[]) ?? []);
   };
 
