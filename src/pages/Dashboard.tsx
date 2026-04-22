@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import { StatsSkeleton } from "@/components/Skeleton";
+import { showApiError } from "@/lib/dairy";
 
 const greet = () => {
   const h = new Date().getHours();
@@ -57,6 +58,8 @@ export default function Dashboard() {
           .select("amount,sale_id"),
       ]);
       if (!alive) return;
+      const error = purchases.error || sales.error || purchaseAgg.error || saleAgg.error;
+      if (showApiError(error, "Could not load dashboard data")) setStats({ products: 0, customers: 0, purchases: 0, sales: 0 });
       const purchaseIds = new Set((purchases.data ?? []).map((p: any) => p.id));
       const saleIds = new Set((sales.data ?? []).map((s: any) => s.id));
       const purchaseTotal = (purchaseAgg.data ?? []).filter((r: any) => purchaseIds.has(r.purchase_id)).reduce((s: number, r: any) => s + Number(r.price || 0), 0);

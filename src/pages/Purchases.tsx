@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, inr, Product, todayISO } from "@/lib/dairy";
+import { getUserId, inr, Product, showApiError, todayISO } from "@/lib/dairy";
 
 type PurchaseRow = { id: string; date: string; invoice_path: string | null };
 type ItemRow = { id: string; purchase_id: string; product_id: string; quantity: number; price: number };
@@ -25,7 +25,7 @@ export default function Purchases() {
       supabase.from("purchase_items").select("id,purchase_id,product_id,quantity,price"),
     ]);
     const error = productError || purchaseError || itemError;
-    if (error) toast.error(error.message);
+    showApiError(error, "Could not load purchase data");
     setProducts((productsData as Product[]) ?? []);
     const totals = new Map<string, number>();
     ((items as ItemRow[]) ?? []).forEach((item) => totals.set(item.purchase_id, (totals.get(item.purchase_id) ?? 0) + Number(item.price || 0)));

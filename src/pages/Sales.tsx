@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { CustomerGridSkeleton, TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { Customer, getUserId, inr, Product, todayISO } from "@/lib/dairy";
+import { Customer, getUserId, inr, Product, showApiError, todayISO } from "@/lib/dairy";
 
 type Sale = { id: string; date: string; customer_id: string; customers?: { name: string } | null };
 type SaleItem = { sale_id: string; amount: number };
@@ -28,7 +28,7 @@ export default function Sales() {
       supabase.from("sale_items").select("sale_id,amount"),
     ]);
     const error = ce || pe || se || sie;
-    if (error) toast.error(error.message);
+    showApiError(error, "Could not load sales data");
     setCustomers((c as Customer[]) ?? []);
     setProducts((p as Product[]) ?? []);
     const totals = new Map<string, number>();
