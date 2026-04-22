@@ -44,23 +44,23 @@ export default function Dashboard() {
     let alive = true;
     (async () => {
       const { start, end } = monthRange();
-      const [{ count: products }, { count: customers }, purchaseAgg, saleAgg] = await Promise.all([
+      const [{ count: products }, { count: customers }, purchases, sales, purchaseAgg, saleAgg] = await Promise.all([
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("customers").select("id", { count: "exact", head: true }),
+        supabase.from("purchases").select("id").gte("date", start).lt("date", end),
+        supabase.from("sales").select("id").gte("date", start).lt("date", end),
         supabase
           .from("purchase_items")
-          .select("price, purchases!inner(date)")
-          .gte("purchases.date", start)
-          .lt("purchases.date", end),
+          .select("price,purchase_id"),
         supabase
           .from("sale_items")
-          .select("amount, sales!inner(date)")
-          .gte("sales.date", start)
-          .lt("sales.date", end),
+          .select("amount,sale_id"),
       ]);
       if (!alive) return;
-      const purchaseTotal = (purchaseAgg.data ?? []).reduce((s: number, r: any) => s + Number(r.price || 0), 0);
-      const salesTotal = (saleAgg.data ?? []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const purchaseIds = new Set((purchases.data ?? []).map((p: any) => p.id));
+      const saleIds = new Set((sales.data ?? []).map((s: any) => s.id));
+      const purchaseTotal = (purchaseAgg.data ?? []).filter((r: any) => purchaseIds.has(r.purchase_id)).reduce((s: number, r: any) => s + Number(r.price || 0), 0);
+      const salesTotal = (saleAgg.data ?? []).filter((r: any) => saleIds.has(r.sale_id)).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
       setStats({
         products: products ?? 0,
         customers: customers ?? 0,
