@@ -27,19 +27,27 @@ export default function Auth() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
-        toast.success("Account created. You're signed in.");
+        if (data.session) {
+          toast.success("Account created. Opening DairyBook…");
+          navigate("/", { replace: true });
+        } else {
+          toast.success("Check your email to verify your account, then sign in.");
+          setMode("signin");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
         if (error) throw error;
+        toast.success("Signed in. Opening DairyBook…");
+        navigate("/", { replace: true });
       }
     } catch (err: any) {
       showApiError(err, mode === "signin" ? "Could not sign in" : "Could not create account");
