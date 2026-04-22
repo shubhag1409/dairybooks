@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { showApiError } from "@/lib/dairy";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function Auth() {
         if (error) throw error;
       }
     } catch (err: any) {
-      toast.error(err?.message ?? "Something went wrong");
+      showApiError(err, mode === "signin" ? "Could not sign in" : "Could not create account");
     } finally {
       setBusy(false);
     }

@@ -3,7 +3,7 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId } from "@/lib/dairy";
+import { getUserId, showApiError } from "@/lib/dairy";
 
 export default function Settings() {
   const [businessName, setBusinessName] = useState("");
@@ -14,7 +14,7 @@ export default function Settings() {
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase.from("business_settings").select("business_name,ca_email").maybeSingle();
-      if (error) toast.error(error.message);
+      showApiError(error, "Could not load settings");
       setBusinessName(data?.business_name ?? "");
       setCaEmail(data?.ca_email ?? "");
       setLoading(false);

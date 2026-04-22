@@ -4,7 +4,7 @@ import { Download, Mail } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { currentMonth, inr, monthBounds } from "@/lib/dairy";
+import { currentMonth, inr, monthBounds, throwApiError } from "@/lib/dairy";
 
 export default function Reports() {
   const [month, setMonth] = useState(currentMonth());
@@ -21,7 +21,7 @@ export default function Reports() {
       supabase.from("crates").select("date,opening_stock,received,given,closing_stock").gte("date", start).lt("date", end).order("date"),
     ]);
     const error = settings.error || purchases.error || purchaseItems.error || sales.error || saleItems.error || crates.error;
-    if (error) throw error;
+    throwApiError(error, "Could not load report data");
 
     const wb = new ExcelJS.Workbook();
     wb.creator = "DairyBook";

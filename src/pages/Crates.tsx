@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, todayISO } from "@/lib/dairy";
+import { getUserId, showApiError, todayISO } from "@/lib/dairy";
 
 type Crate = { id: string; date: string; opening_stock: number; received: number; given: number; closing_stock: number };
 
@@ -19,7 +19,7 @@ export default function Crates() {
 
   const load = async () => {
     const { data, error } = await supabase.from("crates").select("id,date,opening_stock,received,given,closing_stock").order("date", { ascending: false }).limit(60);
-    if (error) toast.error(error.message);
+    showApiError(error, "Could not load crate data");
     const rows = (data as Crate[]) ?? [];
     setItems(rows);
     const latest = rows[0];
