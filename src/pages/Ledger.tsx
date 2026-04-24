@@ -442,7 +442,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </label>
 );
 
-const Th = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+const Th = ({ children, className = "" }: { children?: React.ReactNode; className?: string }) => (
   <th className={`px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider ${className}`}>{children}</th>
 );
 const Td = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
