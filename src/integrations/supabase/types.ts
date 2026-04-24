@@ -119,6 +119,7 @@ export type Database = {
       products: {
         Row: {
           created_at: string
+          hsn_code: string | null
           id: string
           name: string
           rate: number
@@ -128,6 +129,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hsn_code?: string | null
           id?: string
           name: string
           rate?: number
@@ -137,6 +139,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hsn_code?: string | null
           id?: string
           name?: string
           rate?: number
