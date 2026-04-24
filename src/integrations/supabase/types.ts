@@ -122,6 +122,7 @@ export type Database = {
           id: string
           name: string
           rate: number
+          taxed: boolean
           unit: string
           user_id: string
         }
@@ -130,6 +131,7 @@ export type Database = {
           id?: string
           name: string
           rate?: number
+          taxed?: boolean
           unit?: string
           user_id: string
         }
@@ -138,6 +140,7 @@ export type Database = {
           id?: string
           name?: string
           rate?: number
+          taxed?: boolean
           unit?: string
           user_id?: string
         }
