@@ -1,0 +1,332 @@
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Trash2, Wallet } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import EmptyState from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/Skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { Customer, getUserId, inr, showApiError, todayISO } from "@/lib/dairy";
+
+type SaleRow = { id: string; date: string; customer_id: string };
+type SaleItemRow = { sale_id: string; quantity: number; amount: number; product_id: string };
+type ProductRow = { id: string; name: string; unit: string };
+type PaymentRow = { id: string; sale_id: string | null; customer_id: string; amount: number; date: string; note: string | null };
+
+type LedgerLine = {
+  saleId: string;
+  date: string;
+  items: { name: string; qty: number; amount: number; unit: string }[];
+  total: number;
+  paid: number;
+  balance: number;
+};
+
+export default function Ledger() {
+  const [customers, setCustomers] = useState<Customer[] | null>(null);
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [sales, setSales] = useState<SaleRow[]>([]);
+  const [items, setItems] = useState<SaleItemRow[]>([]);
+  const [products, setProducts] = useState<Record<string, ProductRow>>({});
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Add-payment form
+  const [payAmount, setPayAmount] = useState("");
+  const [payDate, setPayDate] = useState(todayISO());
+  const [paySaleId, setPaySaleId] = useState<string>("");
+  const [payNote, setPayNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  // Initial: load customers
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id,name,phone,address")
+        .order("name", { ascending: true });
+      if (showApiError(error, "Could not load customers")) return;
+      const list = (data as Customer[]) ?? [];
+      setCustomers(list);
+      if (list.length > 0 && !selectedId) setSelectedId(list[0].id);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadDetail = async (customerId: string) => {
+    if (!customerId) return;
+    setLoadingDetail(true);
+    const [{ data: s, error: se }, { data: p, error: pe }, { data: pr, error: pre }] = await Promise.all([
+      supabase.from("sales").select("id,date,customer_id").eq("customer_id", customerId).order("date", { ascending: false }),
+      supabase.from("sale_payments").select("id,sale_id,customer_id,amount,date,note").eq("customer_id", customerId).order("date", { ascending: false }),
+      supabase.from("products").select("id,name,unit"),
+    ]);
+    showApiError(se || pe || pre, "Could not load ledger");
+    const saleRows = (s as SaleRow[]) ?? [];
+    setSales(saleRows);
+    setPayments((p as PaymentRow[]) ?? []);
+    const prodMap: Record<string, ProductRow> = {};
+    ((pr as ProductRow[]) ?? []).forEach((x) => (prodMap[x.id] = x));
+    setProducts(prodMap);
+
+    if (saleRows.length > 0) {
+      const ids = saleRows.map((x) => x.id);
+      const { data: si, error: sie } = await supabase
+        .from("sale_items")
+        .select("sale_id,quantity,amount,product_id")
+        .in("sale_id", ids);
+      showApiError(sie, "Could not load sale items");
+      setItems((si as SaleItemRow[]) ?? []);
+    } else {
+      setItems([]);
+    }
+    setLoadingDetail(false);
+  };
+
+  useEffect(() => {
+    if (selectedId) loadDetail(selectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  const lines: LedgerLine[] = useMemo(() => {
+    const paidBySale = new Map<string, number>();
+    payments.forEach((pay) => {
+      if (pay.sale_id) paidBySale.set(pay.sale_id, (paidBySale.get(pay.sale_id) ?? 0) + Number(pay.amount || 0));
+    });
+    return sales.map((sale) => {
+      const its = items.filter((i) => i.sale_id === sale.id).map((i) => {
+        const prod = products[i.product_id];
+        return { name: prod?.name ?? "—", unit: prod?.unit ?? "", qty: Number(i.quantity), amount: Number(i.amount) };
+      });
+      const total = its.reduce((sum, x) => sum + x.amount, 0);
+      const paid = paidBySale.get(sale.id) ?? 0;
+      return { saleId: sale.id, date: sale.date, items: its, total, paid, balance: total - paid };
+    });
+  }, [sales, items, products, payments]);
+
+  // Unallocated payments (not tied to a specific sale) reduce overall balance
+  const unallocatedPaid = useMemo(
+    () => payments.filter((p) => !p.sale_id).reduce((s, p) => s + Number(p.amount || 0), 0),
+    [payments],
+  );
+  const totals = useMemo(() => {
+    const billed = lines.reduce((s, l) => s + l.total, 0);
+    const paid = lines.reduce((s, l) => s + l.paid, 0) + unallocatedPaid;
+    return { billed, paid, balance: billed - paid };
+  }, [lines, unallocatedPaid]);
+
+  const selectedCustomer = customers?.find((c) => c.id === selectedId) ?? null;
+
+  const recordPayment = async () => {
+    const amt = Number(payAmount);
+    if (!selectedCustomer) return toast.error("Pick a customer");
+    if (!amt || amt <= 0) return toast.error("Enter a payment amount");
+    setBusy(true);
+    try {
+      const userId = await getUserId();
+      const { error } = await supabase.from("sale_payments").insert({
+        user_id: userId,
+        customer_id: selectedCustomer.id,
+        sale_id: paySaleId || null,
+        amount: amt,
+        date: payDate,
+        note: payNote || null,
+      });
+      if (error) throw error;
+      toast.success("Payment recorded");
+      setPayAmount("");
+      setPayNote("");
+      setPaySaleId("");
+      loadDetail(selectedCustomer.id);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save payment");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removePayment = async (id: string) => {
+    if (!window.confirm("Delete this payment?")) return;
+    const { error } = await supabase.from("sale_payments").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Payment removed");
+    if (selectedId) loadDetail(selectedId);
+  };
+
+  return (
+    <>
+      <PageHeader title="Customer Ledger" subtitle="Per-customer record of every bill, what was bought, and how much is paid." />
+
+      {customers === null ? (
+        <TableSkeleton rows={6} cols={4} />
+      ) : customers.length === 0 ? (
+        <EmptyState icon="👥" title="No customers yet" description="Add customers first to start a ledger." />
+      ) : (
+        <div className="grid xl:grid-cols-[260px_1fr] gap-5">
+          {/* Customer list */}
+          <aside className="bg-card border border-border rounded-lg shadow-card p-3 h-fit max-h-[70vh] overflow-y-auto">
+            <div className="px-2 py-1 text-[10px] font-semibold tracking-wider uppercase text-ink-3">Customers</div>
+            <div className="flex flex-col">
+              {customers.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedId(c.id)}
+                  className={`text-left px-3 py-2 rounded-md text-sm press transition-colors ${
+                    selectedId === c.id ? "bg-forest text-cream" : "text-ink hover:bg-cream-d/40"
+                  }`}
+                >
+                  <div className="font-medium">{c.name}</div>
+                  <div className={`text-[11px] ${selectedId === c.id ? "text-cream/70" : "text-ink-3"}`}>{c.phone || c.address || "—"}</div>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          {/* Detail */}
+          <section className="space-y-5">
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-3">
+              <SummaryCard label="Total billed" value={inr(totals.billed)} tone="ink" />
+              <SummaryCard label="Total paid" value={inr(totals.paid)} tone="forest" />
+              <SummaryCard label="Outstanding" value={inr(totals.balance)} tone={totals.balance > 0 ? "danger" : "forest"} />
+            </div>
+
+            {/* Record payment */}
+            <div className="bg-card border border-border rounded-lg shadow-card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Wallet className="h-4 w-4 text-forest" />
+                <h2 className="font-display text-xl text-ink">Record payment{selectedCustomer ? ` from ${selectedCustomer.name}` : ""}</h2>
+              </div>
+              <div className="grid sm:grid-cols-[140px_140px_1fr_160px_auto] gap-3 items-end">
+                <Field label="Date">
+                  <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} className="input w-full" />
+                </Field>
+                <Field label="Amount (₹)">
+                  <input type="number" min="0" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="input w-full text-right font-tabular" placeholder="0" />
+                </Field>
+                <Field label="Apply to bill (optional)">
+                  <select value={paySaleId} onChange={(e) => setPaySaleId(e.target.value)} className="input w-full">
+                    <option value="">General (against any balance)</option>
+                    {lines.filter((l) => l.balance > 0).map((l) => (
+                      <option key={l.saleId} value={l.saleId}>
+                        {l.date} · {inr(l.total)} (due {inr(l.balance)})
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Note">
+                  <input value={payNote} onChange={(e) => setPayNote(e.target.value)} className="input w-full" placeholder="Cash / UPI / etc." />
+                </Field>
+                <button onClick={recordPayment} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60">
+                  {busy ? "Saving…" : "Add payment"}
+                </button>
+              </div>
+            </div>
+
+            {/* Bills history */}
+            <div className="bg-card border border-border rounded-lg shadow-card p-5">
+              <h2 className="font-display text-xl text-ink mb-4">Bill history</h2>
+              {loadingDetail ? (
+                <TableSkeleton rows={4} cols={5} />
+              ) : lines.length === 0 ? (
+                <EmptyState icon="🧾" title="No sales for this customer yet" />
+              ) : (
+                <div className="overflow-x-auto border border-border rounded-lg">
+                  <table className="w-full">
+                    <thead className="bg-forest text-cream">
+                      <tr>
+                        <Th>Date</Th>
+                        <Th>Products</Th>
+                        <Th className="text-right">Total</Th>
+                        <Th className="text-right">Paid</Th>
+                        <Th className="text-right">Balance</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map((l) => (
+                        <tr key={l.saleId} className="border-t border-border-l align-top">
+                          <Td className="font-tabular whitespace-nowrap">{l.date}</Td>
+                          <Td>
+                            <div className="flex flex-col gap-0.5">
+                              {l.items.map((it, idx) => (
+                                <div key={idx} className="text-sm text-ink">
+                                  <span className="font-medium">{it.name}</span>
+                                  <span className="text-ink-3"> · {it.qty} {it.unit} · </span>
+                                  <span className="font-tabular">{inr(it.amount)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </Td>
+                          <Td className="text-right font-tabular">{inr(l.total)}</Td>
+                          <Td className="text-right font-tabular text-forest">{inr(l.paid)}</Td>
+                          <Td className={`text-right font-tabular font-semibold ${l.balance > 0 ? "text-danger" : "text-forest"}`}>{inr(l.balance)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Payments log */}
+            <div className="bg-card border border-border rounded-lg shadow-card p-5">
+              <h2 className="font-display text-xl text-ink mb-4">Payments received</h2>
+              {payments.length === 0 ? (
+                <p className="text-sm text-ink-3">No payments recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {payments.map((p) => {
+                    const linkedSale = sales.find((s) => s.id === p.sale_id);
+                    return (
+                      <div key={p.id} className="flex items-center justify-between gap-3 border border-border rounded-md p-3">
+                        <div>
+                          <div className="text-sm text-ink font-tabular">
+                            {p.date} · <span className="font-semibold">{inr(Number(p.amount))}</span>
+                          </div>
+                          <div className="text-xs text-ink-3">
+                            {linkedSale ? `Bill ${linkedSale.date}` : "General payment"}
+                            {p.note ? ` · ${p.note}` : ""}
+                          </div>
+                        </div>
+                        <button onClick={() => removePayment(p.id)} className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-cream-d text-ink-3 hover:text-danger press">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      <style>{inputCss}</style>
+    </>
+  );
+}
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <label className="flex flex-col gap-1">
+    <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">{label}</span>
+    {children}
+  </label>
+);
+
+const Th = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <th className={`px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider ${className}`}>{children}</th>
+);
+const Td = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <td className={`px-4 py-3.5 text-sm ${className}`}>{children}</td>
+);
+
+const SummaryCard = ({ label, value, tone }: { label: string; value: string; tone: "ink" | "forest" | "danger" }) => {
+  const color = tone === "forest" ? "text-forest" : tone === "danger" ? "text-danger" : "text-ink";
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-card p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">{label}</div>
+      <div className={`mt-1 font-tabular text-2xl ${color}`}>{value}</div>
+    </div>
+  );
+};
+
+const inputCss = `.input{height:2.5rem;padding:0 .875rem;border-radius:.5rem;border:1px solid hsl(var(--border));background:hsl(var(--card));color:hsl(var(--ink));font-size:.875rem;outline:none}.input:focus{border-color:hsl(var(--turmeric));box-shadow:0 0 0 3px hsl(var(--turmeric)/.18)}`;

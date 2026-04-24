@@ -230,6 +230,39 @@ export type Database = {
           },
         ]
       }
+      sale_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string
+          date: string
+          id: string
+          note: string | null
+          sale_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_id: string
+          date?: string
+          id?: string
+          note?: string | null
+          sale_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          date?: string
+          id?: string
+          note?: string | null
+          sale_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           created_at: string

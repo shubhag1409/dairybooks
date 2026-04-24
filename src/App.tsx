@@ -15,6 +15,7 @@ import Sales from "./pages/Sales";
 import Crates from "./pages/Crates";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Ledger from "./pages/Ledger";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/purchases" element={<Purchases />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/crates" element={<Crates />} />
+            <Route path="/ledger" element={<Ledger />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
