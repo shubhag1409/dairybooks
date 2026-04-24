@@ -1,0 +1,8 @@
+ALTER TABLE public.business_settings
+  ADD COLUMN IF NOT EXISTS gst_number TEXT,
+  ADD COLUMN IF NOT EXISTS pan_number TEXT,
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS address TEXT,
+  ADD COLUMN IF NOT EXISTS bank_account_number TEXT,
+  ADD COLUMN IF NOT EXISTS ifsc_code TEXT;
