@@ -18,6 +18,7 @@ type Product = {
   unit: string;
   created_at: string;
   taxed: boolean;
+  hsn_code: string | null;
 };
 
 const UNITS = ["pouch", "box", "crate", "piece"] as const;
@@ -104,6 +105,7 @@ export default function Products() {
                 <tr>
                   <Th className="w-14">#</Th>
                   <Th>Product</Th>
+                  <Th>HSN</Th>
                   <Th className="text-right">Rate</Th>
                   <Th>Unit</Th>
                   <Th className="text-right w-32">Actions</Th>
@@ -114,6 +116,7 @@ export default function Products() {
                   <tr key={p.id} className="border-t border-border-l hover:bg-cream-d/40 transition-colors">
                     <Td className="text-ink-3">{i + 1}</Td>
                     <Td className="font-medium text-ink">{p.name}</Td>
+                    <Td className="text-ink-3 font-tabular">{p.hsn_code || "—"}</Td>
                     <Td className="text-right font-tabular text-ink">
                       ₹{Number(p.rate).toFixed(2)}
                     </Td>
