@@ -16,20 +16,41 @@ export type Database = {
     Tables: {
       business_settings: {
         Row: {
+          address: string | null
+          bank_account_number: string | null
           business_name: string | null
           ca_email: string | null
+          email: string | null
+          gst_number: string | null
+          ifsc_code: string | null
+          pan_number: string | null
+          phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
+          bank_account_number?: string | null
           business_name?: string | null
           ca_email?: string | null
+          email?: string | null
+          gst_number?: string | null
+          ifsc_code?: string | null
+          pan_number?: string | null
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
+          bank_account_number?: string | null
           business_name?: string | null
           ca_email?: string | null
+          email?: string | null
+          gst_number?: string | null
+          ifsc_code?: string | null
+          pan_number?: string | null
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
