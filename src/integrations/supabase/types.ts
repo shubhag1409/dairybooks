@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_crates: {
+        Row: {
+          created_at: string
+          customer_id: string
+          date: string
+          given: number
+          id: string
+          note: string | null
+          returned: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          date?: string
+          given?: number
+          id?: string
+          note?: string | null
+          returned?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          date?: string
+          given?: number
+          id?: string
+          note?: string | null
+          returned?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null

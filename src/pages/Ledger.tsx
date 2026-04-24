@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, Wallet } from "lucide-react";
+import { Trash2, Wallet, Package } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/Skeleton";
@@ -11,6 +11,7 @@ type SaleRow = { id: string; date: string; customer_id: string };
 type SaleItemRow = { sale_id: string; quantity: number; amount: number; product_id: string };
 type ProductRow = { id: string; name: string; unit: string };
 type PaymentRow = { id: string; sale_id: string | null; customer_id: string; amount: number; date: string; note: string | null };
+type CrateRow = { id: string; customer_id: string; date: string; given: number; returned: number; note: string | null };
 
 type LedgerLine = {
   saleId: string;
@@ -28,6 +29,7 @@ export default function Ledger() {
   const [items, setItems] = useState<SaleItemRow[]>([]);
   const [products, setProducts] = useState<Record<string, ProductRow>>({});
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [crates, setCrates] = useState<CrateRow[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Add-payment form
@@ -36,6 +38,13 @@ export default function Ledger() {
   const [paySaleId, setPaySaleId] = useState<string>("");
   const [payNote, setPayNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Crate-entry form
+  const [crateDate, setCrateDate] = useState(todayISO());
+  const [crateGiven, setCrateGiven] = useState("0");
+  const [crateReturned, setCrateReturned] = useState("0");
+  const [crateNote, setCrateNote] = useState("");
+  const [crateBusy, setCrateBusy] = useState(false);
 
   // Initial: load customers
   useEffect(() => {
@@ -55,15 +64,17 @@ export default function Ledger() {
   const loadDetail = async (customerId: string) => {
     if (!customerId) return;
     setLoadingDetail(true);
-    const [{ data: s, error: se }, { data: p, error: pe }, { data: pr, error: pre }] = await Promise.all([
+    const [{ data: s, error: se }, { data: p, error: pe }, { data: pr, error: pre }, { data: cc, error: cce }] = await Promise.all([
       supabase.from("sales").select("id,date,customer_id").eq("customer_id", customerId).order("date", { ascending: false }),
       supabase.from("sale_payments").select("id,sale_id,customer_id,amount,date,note").eq("customer_id", customerId).order("date", { ascending: false }),
       supabase.from("products").select("id,name,unit"),
+      supabase.from("customer_crates").select("id,customer_id,date,given,returned,note").eq("customer_id", customerId).order("date", { ascending: false }),
     ]);
-    showApiError(se || pe || pre, "Could not load ledger");
+    showApiError(se || pe || pre || cce, "Could not load ledger");
     const saleRows = (s as SaleRow[]) ?? [];
     setSales(saleRows);
     setPayments((p as PaymentRow[]) ?? []);
+    setCrates((cc as CrateRow[]) ?? []);
     const prodMap: Record<string, ProductRow> = {};
     ((pr as ProductRow[]) ?? []).forEach((x) => (prodMap[x.id] = x));
     setProducts(prodMap);
@@ -80,6 +91,49 @@ export default function Ledger() {
       setItems([]);
     }
     setLoadingDetail(false);
+  };
+
+  const crateTotals = useMemo(() => {
+    const given = crates.reduce((s, c) => s + Number(c.given || 0), 0);
+    const returned = crates.reduce((s, c) => s + Number(c.returned || 0), 0);
+    return { given, returned, outstanding: given - returned };
+  }, [crates]);
+
+  const recordCrate = async () => {
+    const g = Number(crateGiven) || 0;
+    const r = Number(crateReturned) || 0;
+    if (!selectedCustomer) return toast.error("Pick a customer");
+    if (g <= 0 && r <= 0) return toast.error("Enter crates given or returned");
+    setCrateBusy(true);
+    try {
+      const userId = await getUserId();
+      const { error } = await supabase.from("customer_crates").insert({
+        user_id: userId,
+        customer_id: selectedCustomer.id,
+        date: crateDate,
+        given: g,
+        returned: r,
+        note: crateNote || null,
+      });
+      if (error) throw error;
+      toast.success("Crate entry saved");
+      setCrateGiven("0");
+      setCrateReturned("0");
+      setCrateNote("");
+      loadDetail(selectedCustomer.id);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not save crate entry");
+    } finally {
+      setCrateBusy(false);
+    }
+  };
+
+  const removeCrate = async (id: string) => {
+    if (!window.confirm("Delete this crate entry?")) return;
+    const { error } = await supabase.from("customer_crates").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Crate entry removed");
+    if (selectedId) loadDetail(selectedId);
   };
 
   useEffect(() => {
@@ -296,6 +350,82 @@ export default function Ledger() {
                 </div>
               )}
             </div>
+
+            {/* Crate ledger */}
+            <div className="bg-card border border-border rounded-lg shadow-card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Package className="h-4 w-4 text-forest" />
+                <h2 className="font-display text-xl text-ink">Crate ledger{selectedCustomer ? ` · ${selectedCustomer.name}` : ""}</h2>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                <SummaryCard label="Crates given" value={String(crateTotals.given)} tone="ink" />
+                <SummaryCard label="Crates returned" value={String(crateTotals.returned)} tone="forest" />
+                <SummaryCard
+                  label="Outstanding crates"
+                  value={String(crateTotals.outstanding)}
+                  tone={crateTotals.outstanding > 0 ? "danger" : "forest"}
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-[140px_120px_120px_1fr_auto] gap-3 items-end mb-5">
+                <Field label="Date">
+                  <input type="date" value={crateDate} onChange={(e) => setCrateDate(e.target.value)} className="input w-full" />
+                </Field>
+                <Field label="Given">
+                  <input type="number" min="0" value={crateGiven} onChange={(e) => setCrateGiven(e.target.value)} className="input w-full text-right font-tabular" />
+                </Field>
+                <Field label="Returned">
+                  <input type="number" min="0" value={crateReturned} onChange={(e) => setCrateReturned(e.target.value)} className="input w-full text-right font-tabular" />
+                </Field>
+                <Field label="Note">
+                  <input value={crateNote} onChange={(e) => setCrateNote(e.target.value)} className="input w-full" placeholder="Optional remark" />
+                </Field>
+                <button onClick={recordCrate} disabled={crateBusy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60">
+                  {crateBusy ? "Saving…" : "Add entry"}
+                </button>
+              </div>
+
+              {loadingDetail ? (
+                <TableSkeleton rows={3} cols={5} />
+              ) : crates.length === 0 ? (
+                <EmptyState icon="📦" title="No crate entries yet" description="Record crates given to or returned by this customer." />
+              ) : (
+                <div className="overflow-x-auto border border-border rounded-lg">
+                  <table className="w-full">
+                    <thead className="bg-forest text-cream">
+                      <tr>
+                        <Th>Date</Th>
+                        <Th className="text-right">Given</Th>
+                        <Th className="text-right">Returned</Th>
+                        <Th className="text-right">Net out</Th>
+                        <Th>Note</Th>
+                        <Th className="w-12" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {crates.map((c) => {
+                        const net = Number(c.given || 0) - Number(c.returned || 0);
+                        return (
+                          <tr key={c.id} className="border-t border-border-l">
+                            <Td className="font-tabular whitespace-nowrap">{c.date}</Td>
+                            <Td className="text-right font-tabular">{c.given}</Td>
+                            <Td className="text-right font-tabular text-forest">{c.returned}</Td>
+                            <Td className={`text-right font-tabular font-semibold ${net > 0 ? "text-danger" : net < 0 ? "text-forest" : "text-ink"}`}>{net}</Td>
+                            <Td className="text-ink-2">{c.note || "—"}</Td>
+                            <Td className="text-right">
+                              <button onClick={() => removeCrate(c.id)} className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-cream-d text-ink-3 hover:text-danger press">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </Td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </section>
         </div>
       )}
@@ -312,7 +442,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </label>
 );
 
-const Th = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+const Th = ({ children, className = "" }: { children?: React.ReactNode; className?: string }) => (
   <th className={`px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider ${className}`}>{children}</th>
 );
 const Td = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
