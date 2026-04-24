@@ -9,6 +9,7 @@ import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 import { showApiError } from "@/lib/dairy";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type Product = {
   id: string;
@@ -16,14 +17,16 @@ type Product = {
   rate: number;
   unit: string;
   created_at: string;
+  taxed: boolean;
 };
 
-const UNITS = ["pouch", "litre", "kg", "packet", "box", "unit"] as const;
+const UNITS = ["pouch", "box", "crate", "piece"] as const;
 
 export default function Products() {
   const [items, setItems] = useState<Product[] | null>(null);
   const [editing, setEditing] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"taxed" | "nontaxed">("taxed");
 
   const load = async () => {
     const { data, error } = await supabase
@@ -47,36 +50,49 @@ export default function Products() {
   const openNew = () => { setEditing(null); setOpen(true); };
   const openEdit = (p: Product) => { setEditing(p); setOpen(true); };
 
+  const filtered = items?.filter((p) => (tab === "taxed" ? p.taxed : !p.taxed)) ?? null;
+
   return (
     <>
       <PageHeader
         title="Products"
-        subtitle="Your catalogue — what you buy and sell."
+        subtitle="Your catalogue — split by taxed and non-taxed items."
         actions={
           items && items.length > 0 && (
             <button
               onClick={openNew}
               className="h-10 px-4 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l transition-colors press inline-flex items-center gap-2"
             >
-              <Plus className="h-4 w-4" /> Add product
+              <Plus className="h-4 w-4" /> Add {tab === "taxed" ? "taxed" : "non-taxed"} product
             </button>
           )
         }
       />
 
-      {items === null ? (
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "taxed" | "nontaxed")} className="mb-4">
+        <TabsList>
+          <TabsTrigger value="taxed">Taxed products</TabsTrigger>
+          <TabsTrigger value="nontaxed">Non-taxed products</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {items === null || filtered === null ? (
         <TableSkeleton rows={5} cols={4} />
-      ) : items.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon="🥛"
-          title="No products yet"
-          description="Add the first item you buy from the company — milk pouches, curd, ghee, etc."
+          title={tab === "taxed" ? "No taxed products yet" : "No non-taxed products yet"}
+          description={
+            tab === "taxed"
+              ? "Add items that attract GST or other taxes."
+              : "Add items that are sold without tax."
+          }
           action={
             <button
               onClick={openNew}
               className="h-10 px-4 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l transition-colors press inline-flex items-center gap-2"
             >
-              <Plus className="h-4 w-4" /> Add your first product
+              <Plus className="h-4 w-4" /> Add your first {tab === "taxed" ? "taxed" : "non-taxed"} product
             </button>
           }
         />
@@ -94,7 +110,7 @@ export default function Products() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((p, i) => (
+                {filtered.map((p, i) => (
                   <tr key={p.id} className="border-t border-border-l hover:bg-cream-d/40 transition-colors">
                     <Td className="text-ink-3">{i + 1}</Td>
                     <Td className="font-medium text-ink">{p.name}</Td>
@@ -129,6 +145,7 @@ export default function Products() {
       {open && (
         <ProductModal
           initial={editing}
+          defaultTaxed={tab === "taxed"}
           onClose={() => setOpen(false)}
           onSaved={() => { setOpen(false); load(); }}
         />
@@ -146,16 +163,21 @@ const Td = ({ children, className = "" }: { children: React.ReactNode; className
 
 function ProductModal({
   initial,
+  defaultTaxed,
   onClose,
   onSaved,
 }: {
   initial: Product | null;
+  defaultTaxed: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [rate, setRate] = useState<string>(initial ? String(initial.rate) : "");
-  const [unit, setUnit] = useState<string>(initial?.unit ?? "pouch");
+  const [unit, setUnit] = useState<string>(
+    initial && (UNITS as readonly string[]).includes(initial.unit) ? initial.unit : "pouch"
+  );
+  const [taxed, setTaxed] = useState<boolean>(initial?.taxed ?? defaultTaxed);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -170,7 +192,7 @@ function ProductModal({
       if (initial) {
         const { error } = await supabase
           .from("products")
-          .update({ name: trimmed, rate: r, unit })
+          .update({ name: trimmed, rate: r, unit, taxed })
           .eq("id", initial.id);
         if (error) throw error;
         toast.success("Product updated");
@@ -179,7 +201,7 @@ function ProductModal({
         if (!user) throw new Error("Not signed in");
         const { error } = await supabase
           .from("products")
-          .insert({ name: trimmed, rate: r, unit, user_id: user.id });
+          .insert({ name: trimmed, rate: r, unit, taxed, user_id: user.id });
         if (error) throw error;
         toast.success("Product added");
       }
@@ -229,6 +251,33 @@ function ProductModal({
               </select>
             </Field>
           </div>
+
+          <Field label="Tax category">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTaxed(true)}
+                className={`h-10 px-4 rounded-md text-sm font-medium press border ${
+                  taxed
+                    ? "bg-forest text-cream border-forest"
+                    : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                }`}
+              >
+                Taxed
+              </button>
+              <button
+                type="button"
+                onClick={() => setTaxed(false)}
+                className={`h-10 px-4 rounded-md text-sm font-medium press border ${
+                  !taxed
+                    ? "bg-forest text-cream border-forest"
+                    : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                }`}
+              >
+                Non-taxed
+              </button>
+            </div>
+          </Field>
 
           <div className="flex justify-end gap-2 pt-3">
             <button type="button" onClick={onClose} className="h-10 px-4 rounded-md text-sm text-ink-2 hover:bg-cream-d press">
