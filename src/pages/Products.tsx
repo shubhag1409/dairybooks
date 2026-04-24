@@ -181,6 +181,7 @@ function ProductModal({
     initial && (UNITS as readonly string[]).includes(initial.unit) ? initial.unit : "pouch"
   );
   const [taxed, setTaxed] = useState<boolean>(initial?.taxed ?? defaultTaxed);
+  const [hsn, setHsn] = useState<string>(initial?.hsn_code ?? "");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -189,13 +190,17 @@ function ProductModal({
     if (!trimmed) return toast.error("Name is required");
     const r = Number(rate);
     if (!Number.isFinite(r) || r < 0) return toast.error("Rate must be a positive number");
+    const hsnTrim = hsn.trim();
+    if (hsnTrim && !/^[0-9]{4,8}$/.test(hsnTrim)) {
+      return toast.error("HSN code must be 4–8 digits");
+    }
 
     setBusy(true);
     try {
       if (initial) {
         const { error } = await supabase
           .from("products")
-          .update({ name: trimmed, rate: r, unit, taxed })
+          .update({ name: trimmed, rate: r, unit, taxed, hsn_code: hsnTrim || null })
           .eq("id", initial.id);
         if (error) throw error;
         toast.success("Product updated");
@@ -204,7 +209,7 @@ function ProductModal({
         if (!user) throw new Error("Not signed in");
         const { error } = await supabase
           .from("products")
-          .insert({ name: trimmed, rate: r, unit, taxed, user_id: user.id });
+          .insert({ name: trimmed, rate: r, unit, taxed, hsn_code: hsnTrim || null, user_id: user.id });
         if (error) throw error;
         toast.success("Product added");
       }
@@ -254,6 +259,17 @@ function ProductModal({
               </select>
             </Field>
           </div>
+
+          <Field label="HSN code (optional)">
+            <input
+              value={hsn}
+              onChange={(e) => setHsn(e.target.value)}
+              className="input font-tabular"
+              placeholder="e.g. 0401"
+              inputMode="numeric"
+              maxLength={8}
+            />
+          </Field>
 
           <Field label="Tax category">
             <div className="flex gap-2">
