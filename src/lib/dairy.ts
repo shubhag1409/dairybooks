@@ -38,5 +38,12 @@ export const throwApiError = (error: unknown, fallback?: string) => {
   throw error;
 };
 
-export type Product = { id: string; name: string; rate: number; unit: string };
+export type Product = {
+  id: string;
+  name: string;
+  rate: number;
+  unit: string;
+  offer_buy_qty?: number | null;
+  offer_free_qty?: number | null;
+};
 export type Customer = { id: string; name: string; phone: string | null; address: string | null };
