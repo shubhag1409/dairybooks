@@ -16,6 +16,9 @@ type Customer = {
   phone: string | null;
   address: string | null;
   created_at: string;
+  pan_number: string | null;
+  gst_number: string | null;
+  aadhaar_number: string | null;
 };
 
 export default function Customers() {
@@ -88,6 +91,9 @@ export default function Customers() {
                   <Th>Name / Shop</Th>
                   <Th>Phone</Th>
                   <Th>Area / Address</Th>
+                  <Th>GST</Th>
+                  <Th>PAN</Th>
+                  <Th>Aadhaar</Th>
                   <Th className="text-right w-32">Actions</Th>
                 </tr>
               </thead>
@@ -98,6 +104,9 @@ export default function Customers() {
                     <Td className="font-medium text-ink">{c.name}</Td>
                     <Td className="text-ink-2 font-tabular">{c.phone || "—"}</Td>
                     <Td className="text-ink-3">{c.address || "—"}</Td>
+                    <Td className="text-ink-2 font-tabular">{c.gst_number || "—"}</Td>
+                    <Td className="text-ink-2 font-tabular">{c.pan_number || "—"}</Td>
+                    <Td className="text-ink-2 font-tabular">{c.aadhaar_number || "—"}</Td>
                     <Td className="text-right">
                       <button
                         onClick={() => openEdit(c)}
@@ -152,6 +161,9 @@ function CustomerModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
+  const [gst, setGst] = useState(initial?.gst_number ?? "");
+  const [pan, setPan] = useState(initial?.pan_number ?? "");
+  const [aadhaar, setAadhaar] = useState(initial?.aadhaar_number ?? "");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -165,6 +177,9 @@ function CustomerModal({
         name: trimmed,
         phone: phone.trim() || null,
         address: address.trim() || null,
+        gst_number: gst.trim().toUpperCase() || null,
+        pan_number: pan.trim().toUpperCase() || null,
+        aadhaar_number: aadhaar.trim() || null,
       };
       if (initial) {
         const { error } = await supabase.from("customers").update(payload).eq("id", initial.id);
@@ -220,6 +235,34 @@ function CustomerModal({
               className="cust-input min-h-[72px] py-2"
               placeholder="Sector 14, Main Road, …"
               rows={3}
+            />
+          </Field>
+          <Field label="GST number (optional)">
+            <input
+              value={gst}
+              onChange={(e) => setGst(e.target.value)}
+              className="cust-input font-tabular uppercase"
+              placeholder="22ABCDE1234F1Z5"
+              maxLength={15}
+            />
+          </Field>
+          <Field label="PAN number (optional)">
+            <input
+              value={pan}
+              onChange={(e) => setPan(e.target.value)}
+              className="cust-input font-tabular uppercase"
+              placeholder="ABCDE1234F"
+              maxLength={10}
+            />
+          </Field>
+          <Field label="Aadhaar number (optional)">
+            <input
+              value={aadhaar}
+              onChange={(e) => setAadhaar(e.target.value.replace(/[^\d\s]/g, ""))}
+              className="cust-input font-tabular"
+              placeholder="1234 5678 9012"
+              inputMode="numeric"
+              maxLength={14}
             />
           </Field>
 

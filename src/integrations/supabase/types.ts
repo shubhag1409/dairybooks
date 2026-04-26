@@ -124,26 +124,35 @@ export type Database = {
       }
       customers: {
         Row: {
+          aadhaar_number: string | null
           address: string | null
           created_at: string
+          gst_number: string | null
           id: string
           name: string
+          pan_number: string | null
           phone: string | null
           user_id: string
         }
         Insert: {
+          aadhaar_number?: string | null
           address?: string | null
           created_at?: string
+          gst_number?: string | null
           id?: string
           name: string
+          pan_number?: string | null
           phone?: string | null
           user_id: string
         }
         Update: {
+          aadhaar_number?: string | null
           address?: string | null
           created_at?: string
+          gst_number?: string | null
           id?: string
           name?: string
+          pan_number?: string | null
           phone?: string | null
           user_id?: string
         }
