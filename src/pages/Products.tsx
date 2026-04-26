@@ -101,7 +101,28 @@ export default function Products() {
         />
       ) : (
         <div className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <ul className="md:hidden divide-y divide-border-l">
+            {filtered.map((p, i) => (
+              <li key={p.id} className="p-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] text-ink-4 font-tabular">#{i + 1}</div>
+                  <div className="font-medium text-ink">{p.name}</div>
+                  <div className="text-sm font-tabular text-ink-2 mt-1">₹{Number(p.rate).toFixed(2)} <span className="text-ink-3">· per {p.unit}</span></div>
+                  {p.hsn_code && <div className="text-xs text-ink-3 mt-0.5 font-tabular">HSN: {p.hsn_code}</div>}
+                  {p.offer_buy_qty && p.offer_free_qty && (
+                    <div className="text-xs text-turmeric mt-0.5">Buy {p.offer_buy_qty} get {p.offer_free_qty} free</div>
+                  )}
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <button onClick={() => openEdit(p)} className="h-9 w-9 rounded hover:bg-cream-d text-ink-3 hover:text-forest press inline-flex items-center justify-center" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => onDelete(p)} className="h-9 w-9 rounded hover:bg-cream-d text-ink-3 hover:text-danger press inline-flex items-center justify-center" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-forest text-cream">
                 <tr>
@@ -269,9 +290,9 @@ function ProductModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-ink/45" onClick={onClose} />
-      <div className="modal-pop relative bg-card border border-border rounded-lg shadow-modal w-full max-w-md p-6">
+      <div className="modal-pop relative bg-card border border-border sm:rounded-lg shadow-modal w-full sm:max-w-md p-5 sm:p-6 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-t-lg">
         <h3 className="font-display text-2xl text-ink">
           {initial ? "Edit product" : "Add product"}
         </h3>

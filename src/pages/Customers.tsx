@@ -83,7 +83,33 @@ export default function Customers() {
         />
       ) : (
         <div className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
-          <div className="overflow-x-auto">
+          {/* Mobile: card list */}
+          <ul className="md:hidden divide-y divide-border-l">
+            {items.map((c, i) => (
+              <li key={c.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-ink-4 font-tabular">#{i + 1}</div>
+                    <div className="font-medium text-ink truncate">{c.name}</div>
+                    {c.phone && <div className="text-sm text-ink-2 font-tabular mt-0.5">{c.phone}</div>}
+                    {c.address && <div className="text-xs text-ink-3 mt-0.5">{c.address}</div>}
+                    <dl className="mt-2 grid grid-cols-1 gap-y-0.5 text-[12px]">
+                      {c.gst_number && (<div className="flex gap-1.5"><dt className="text-ink-3">GST:</dt><dd className="font-tabular text-ink-2">{c.gst_number}</dd></div>)}
+                      {c.pan_number && (<div className="flex gap-1.5"><dt className="text-ink-3">PAN:</dt><dd className="font-tabular text-ink-2">{c.pan_number}</dd></div>)}
+                      {c.aadhaar_number && (<div className="flex gap-1.5"><dt className="text-ink-3">Aadhaar:</dt><dd className="font-tabular text-ink-2">{c.aadhaar_number}</dd></div>)}
+                    </dl>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <button onClick={() => openEdit(c)} className="h-9 w-9 rounded hover:bg-cream-d text-ink-3 hover:text-forest press inline-flex items-center justify-center" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
+                    <button onClick={() => onDelete(c)} className="h-9 w-9 rounded hover:bg-cream-d text-ink-3 hover:text-danger press inline-flex items-center justify-center" aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop / tablet: table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-forest text-cream">
                 <tr>
@@ -201,9 +227,9 @@ function CustomerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-ink/45" onClick={onClose} />
-      <div className="modal-pop relative bg-card border border-border rounded-lg shadow-modal w-full max-w-md p-6">
+      <div className="modal-pop relative bg-card border border-border sm:rounded-lg shadow-modal w-full sm:max-w-md p-5 sm:p-6 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-t-lg">
         <h3 className="font-display text-2xl text-ink">
           {initial ? "Edit customer" : "Add customer"}
         </h3>

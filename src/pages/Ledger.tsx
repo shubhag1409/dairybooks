@@ -215,16 +215,16 @@ export default function Ledger() {
       ) : customers.length === 0 ? (
         <EmptyState icon="👥" title="No customers yet" description="Add customers first to start a ledger." />
       ) : (
-        <div className="grid xl:grid-cols-[260px_1fr] gap-5">
-          {/* Customer list */}
-          <aside className="bg-card border border-border rounded-lg shadow-card p-3 h-fit max-h-[70vh] overflow-y-auto">
+        <div className="grid xl:grid-cols-[260px_1fr] gap-4 sm:gap-5">
+          {/* Customer list — vertical on desktop, horizontal scroll on mobile */}
+          <aside className="bg-card border border-border rounded-lg shadow-card p-2 sm:p-3 h-fit xl:max-h-[70vh] xl:overflow-y-auto">
             <div className="px-2 py-1 text-[10px] font-semibold tracking-wider uppercase text-ink-3">Customers</div>
-            <div className="flex flex-col">
+            <div className="flex xl:flex-col gap-2 xl:gap-0 overflow-x-auto xl:overflow-visible -mx-1 xl:mx-0 px-1 xl:px-0 pb-1 xl:pb-0">
               {customers.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className={`text-left px-3 py-2 rounded-md text-sm press transition-colors ${
+                  className={`text-left px-3 py-2 rounded-md text-sm press transition-colors shrink-0 xl:shrink xl:w-auto min-w-[160px] xl:min-w-0 ${
                     selectedId === c.id ? "bg-forest text-cream" : "text-ink hover:bg-cream-d/40"
                   }`}
                 >
@@ -236,28 +236,28 @@ export default function Ledger() {
           </aside>
 
           {/* Detail */}
-          <section className="space-y-5">
+          <section className="space-y-4 sm:space-y-5 min-w-0">
             {/* Summary */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <SummaryCard label="Total billed" value={inr(totals.billed)} tone="ink" />
               <SummaryCard label="Total paid" value={inr(totals.paid)} tone="forest" />
               <SummaryCard label="Outstanding" value={inr(totals.balance)} tone={totals.balance > 0 ? "danger" : "forest"} />
             </div>
 
             {/* Record payment */}
-            <div className="bg-card border border-border rounded-lg shadow-card p-5">
+            <div className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Wallet className="h-4 w-4 text-forest" />
-                <h2 className="font-display text-xl text-ink">Record payment{selectedCustomer ? ` from ${selectedCustomer.name}` : ""}</h2>
+                <h2 className="font-display text-lg sm:text-xl text-ink">Record payment{selectedCustomer ? ` from ${selectedCustomer.name}` : ""}</h2>
               </div>
-              <div className="grid sm:grid-cols-[140px_140px_1fr_160px_auto] gap-3 items-end">
+              <div className="grid grid-cols-2 lg:grid-cols-[140px_140px_1fr_160px_auto] gap-3 items-end">
                 <Field label="Date">
                   <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} className="input w-full" />
                 </Field>
                 <Field label="Amount (₹)">
                   <input type="number" min="0" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="input w-full text-right font-tabular" placeholder="0" />
                 </Field>
-                <Field label="Apply to bill (optional)">
+                <Field label="Apply to bill (optional)" className="col-span-2 lg:col-span-1">
                   <select value={paySaleId} onChange={(e) => setPaySaleId(e.target.value)} className="input w-full">
                     <option value="">General (against any balance)</option>
                     {lines.filter((l) => l.balance > 0).map((l) => (
@@ -267,25 +267,25 @@ export default function Ledger() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Note">
+                <Field label="Note" className="col-span-2 lg:col-span-1">
                   <input value={payNote} onChange={(e) => setPayNote(e.target.value)} className="input w-full" placeholder="Cash / UPI / etc." />
                 </Field>
-                <button onClick={recordPayment} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60">
+                <button onClick={recordPayment} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60 col-span-2 lg:col-span-1">
                   {busy ? "Saving…" : "Add payment"}
                 </button>
               </div>
             </div>
 
             {/* Bills history */}
-            <div className="bg-card border border-border rounded-lg shadow-card p-5">
-              <h2 className="font-display text-xl text-ink mb-4">Bill history</h2>
+            <div className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5">
+              <h2 className="font-display text-lg sm:text-xl text-ink mb-4">Bill history</h2>
               {loadingDetail ? (
                 <TableSkeleton rows={4} cols={5} />
               ) : lines.length === 0 ? (
                 <EmptyState icon="🧾" title="No sales for this customer yet" />
               ) : (
-                <div className="overflow-x-auto border border-border rounded-lg">
-                  <table className="w-full">
+                <div className="overflow-x-auto -mx-4 sm:mx-0 border-y sm:border border-border sm:rounded-lg">
+                  <table className="w-full min-w-[560px]">
                     <thead className="bg-forest text-cream">
                       <tr>
                         <Th>Date</Th>
@@ -322,8 +322,8 @@ export default function Ledger() {
             </div>
 
             {/* Payments log */}
-            <div className="bg-card border border-border rounded-lg shadow-card p-5">
-              <h2 className="font-display text-xl text-ink mb-4">Payments received</h2>
+            <div className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5">
+              <h2 className="font-display text-lg sm:text-xl text-ink mb-4">Payments received</h2>
               {payments.length === 0 ? (
                 <p className="text-sm text-ink-3">No payments recorded yet.</p>
               ) : (
@@ -352,13 +352,13 @@ export default function Ledger() {
             </div>
 
             {/* Crate ledger */}
-            <div className="bg-card border border-border rounded-lg shadow-card p-5">
+            <div className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Package className="h-4 w-4 text-forest" />
-                <h2 className="font-display text-xl text-ink">Crate ledger{selectedCustomer ? ` · ${selectedCustomer.name}` : ""}</h2>
+                <h2 className="font-display text-lg sm:text-xl text-ink">Crate ledger{selectedCustomer ? ` · ${selectedCustomer.name}` : ""}</h2>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
                 <SummaryCard label="Crates given" value={String(crateTotals.given)} tone="ink" />
                 <SummaryCard label="Crates returned" value={String(crateTotals.returned)} tone="forest" />
                 <SummaryCard
@@ -368,7 +368,7 @@ export default function Ledger() {
                 />
               </div>
 
-              <div className="grid sm:grid-cols-[140px_120px_120px_1fr_auto] gap-3 items-end mb-5">
+              <div className="grid grid-cols-2 lg:grid-cols-[140px_120px_120px_1fr_auto] gap-3 items-end mb-5">
                 <Field label="Date">
                   <input type="date" value={crateDate} onChange={(e) => setCrateDate(e.target.value)} className="input w-full" />
                 </Field>
@@ -378,10 +378,10 @@ export default function Ledger() {
                 <Field label="Returned">
                   <input type="number" min="0" value={crateReturned} onChange={(e) => setCrateReturned(e.target.value)} className="input w-full text-right font-tabular" />
                 </Field>
-                <Field label="Note">
+                <Field label="Note" className="col-span-2 lg:col-span-1">
                   <input value={crateNote} onChange={(e) => setCrateNote(e.target.value)} className="input w-full" placeholder="Optional remark" />
                 </Field>
-                <button onClick={recordCrate} disabled={crateBusy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60">
+                <button onClick={recordCrate} disabled={crateBusy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60 col-span-2 lg:col-span-1">
                   {crateBusy ? "Saving…" : "Add entry"}
                 </button>
               </div>
@@ -391,8 +391,8 @@ export default function Ledger() {
               ) : crates.length === 0 ? (
                 <EmptyState icon="📦" title="No crate entries yet" description="Record crates given to or returned by this customer." />
               ) : (
-                <div className="overflow-x-auto border border-border rounded-lg">
-                  <table className="w-full">
+                <div className="overflow-x-auto -mx-4 sm:mx-0 border-y sm:border border-border sm:rounded-lg">
+                  <table className="w-full min-w-[560px]">
                     <thead className="bg-forest text-cream">
                       <tr>
                         <Th>Date</Th>
@@ -435,8 +435,8 @@ export default function Ledger() {
   );
 }
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <label className="flex flex-col gap-1">
+const Field = ({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) => (
+  <label className={`flex flex-col gap-1 ${className}`}>
     <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">{label}</span>
     {children}
   </label>
