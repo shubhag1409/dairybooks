@@ -345,6 +345,62 @@ function ProductModal({
             </div>
           </Field>
 
+          <Field label="Offer on this product?">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setHasOffer(true)}
+                className={`h-10 px-4 rounded-md text-sm font-medium press border ${
+                  hasOffer
+                    ? "bg-forest text-cream border-forest"
+                    : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                }`}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => setHasOffer(false)}
+                className={`h-10 px-4 rounded-md text-sm font-medium press border ${
+                  !hasOffer
+                    ? "bg-forest text-cream border-forest"
+                    : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                }`}
+              >
+                No
+              </button>
+            </div>
+          </Field>
+
+          {hasOffer && (
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-md bg-cream-d/40 border border-border-l">
+              <Field label="On buying (qty)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  step="1"
+                  min="1"
+                  value={offerBuy}
+                  onChange={(e) => setOfferBuy(e.target.value)}
+                  className="input font-tabular"
+                  placeholder="e.g. 10"
+                />
+              </Field>
+              <Field label="Get free (qty)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  step="1"
+                  min="1"
+                  value={offerFree}
+                  onChange={(e) => setOfferFree(e.target.value)}
+                  className="input font-tabular"
+                  placeholder="e.g. 1"
+                />
+              </Field>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-3">
             <button type="button" onClick={onClose} className="h-10 px-4 rounded-md text-sm text-ink-2 hover:bg-cream-d press">
               Cancel
