@@ -1,0 +1,3 @@
+ALTER TABLE public.products
+ADD COLUMN IF NOT EXISTS offer_buy_qty INTEGER,
+ADD COLUMN IF NOT EXISTS offer_free_qty INTEGER;

@@ -19,6 +19,8 @@ type Product = {
   created_at: string;
   taxed: boolean;
   hsn_code: string | null;
+  offer_buy_qty: number | null;
+  offer_free_qty: number | null;
 };
 
 const UNITS = ["pouch", "box", "crate", "piece"] as const;
@@ -108,6 +110,7 @@ export default function Products() {
                   <Th>HSN</Th>
                   <Th className="text-right">Rate</Th>
                   <Th>Unit</Th>
+                  <Th>Offer</Th>
                   <Th className="text-right w-32">Actions</Th>
                 </tr>
               </thead>
@@ -121,6 +124,11 @@ export default function Products() {
                       ₹{Number(p.rate).toFixed(2)}
                     </Td>
                     <Td className="text-ink-3">per {p.unit}</Td>
+                    <Td className="text-ink-3 font-tabular">
+                      {p.offer_buy_qty && p.offer_free_qty
+                        ? `Buy ${p.offer_buy_qty} get ${p.offer_free_qty} free`
+                        : "—"}
+                    </Td>
                     <Td className="text-right">
                       <button
                         onClick={() => openEdit(p)}
@@ -182,6 +190,15 @@ function ProductModal({
   );
   const [taxed, setTaxed] = useState<boolean>(initial?.taxed ?? defaultTaxed);
   const [hsn, setHsn] = useState<string>(initial?.hsn_code ?? "");
+  const [hasOffer, setHasOffer] = useState<boolean>(
+    !!(initial?.offer_buy_qty && initial?.offer_free_qty)
+  );
+  const [offerBuy, setOfferBuy] = useState<string>(
+    initial?.offer_buy_qty ? String(initial.offer_buy_qty) : ""
+  );
+  const [offerFree, setOfferFree] = useState<string>(
+    initial?.offer_free_qty ? String(initial.offer_free_qty) : ""
+  );
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -195,12 +212,33 @@ function ProductModal({
       return toast.error("HSN code must be 4–8 digits");
     }
 
+    let offerBuyNum: number | null = null;
+    let offerFreeNum: number | null = null;
+    if (hasOffer) {
+      offerBuyNum = Number(offerBuy);
+      offerFreeNum = Number(offerFree);
+      if (!Number.isInteger(offerBuyNum) || offerBuyNum <= 0) {
+        return toast.error("Buy quantity must be a whole number greater than 0");
+      }
+      if (!Number.isInteger(offerFreeNum) || offerFreeNum <= 0) {
+        return toast.error("Free quantity must be a whole number greater than 0");
+      }
+    }
+
     setBusy(true);
     try {
       if (initial) {
         const { error } = await supabase
           .from("products")
-          .update({ name: trimmed, rate: r, unit, taxed, hsn_code: hsnTrim || null })
+          .update({
+            name: trimmed,
+            rate: r,
+            unit,
+            taxed,
+            hsn_code: hsnTrim || null,
+            offer_buy_qty: offerBuyNum,
+            offer_free_qty: offerFreeNum,
+          })
           .eq("id", initial.id);
         if (error) throw error;
         toast.success("Product updated");
@@ -209,7 +247,16 @@ function ProductModal({
         if (!user) throw new Error("Not signed in");
         const { error } = await supabase
           .from("products")
-          .insert({ name: trimmed, rate: r, unit, taxed, hsn_code: hsnTrim || null, user_id: user.id });
+          .insert({
+            name: trimmed,
+            rate: r,
+            unit,
+            taxed,
+            hsn_code: hsnTrim || null,
+            offer_buy_qty: offerBuyNum,
+            offer_free_qty: offerFreeNum,
+            user_id: user.id,
+          });
         if (error) throw error;
         toast.success("Product added");
       }
@@ -297,6 +344,62 @@ function ProductModal({
               </button>
             </div>
           </Field>
+
+          <Field label="Offer on this product?">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setHasOffer(true)}
+                className={`h-10 px-4 rounded-md text-sm font-medium press border ${
+                  hasOffer
+                    ? "bg-forest text-cream border-forest"
+                    : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                }`}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => setHasOffer(false)}
+                className={`h-10 px-4 rounded-md text-sm font-medium press border ${
+                  !hasOffer
+                    ? "bg-forest text-cream border-forest"
+                    : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                }`}
+              >
+                No
+              </button>
+            </div>
+          </Field>
+
+          {hasOffer && (
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-md bg-cream-d/40 border border-border-l">
+              <Field label="On buying (qty)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  step="1"
+                  min="1"
+                  value={offerBuy}
+                  onChange={(e) => setOfferBuy(e.target.value)}
+                  className="input font-tabular"
+                  placeholder="e.g. 10"
+                />
+              </Field>
+              <Field label="Get free (qty)">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  step="1"
+                  min="1"
+                  value={offerFree}
+                  onChange={(e) => setOfferFree(e.target.value)}
+                  className="input font-tabular"
+                  placeholder="e.g. 1"
+                />
+              </Field>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-3">
             <button type="button" onClick={onClose} className="h-10 px-4 rounded-md text-sm text-ink-2 hover:bg-cream-d press">
