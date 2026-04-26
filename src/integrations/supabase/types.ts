@@ -155,6 +155,8 @@ export type Database = {
           hsn_code: string | null
           id: string
           name: string
+          offer_buy_qty: number | null
+          offer_free_qty: number | null
           rate: number
           taxed: boolean
           unit: string
@@ -165,6 +167,8 @@ export type Database = {
           hsn_code?: string | null
           id?: string
           name: string
+          offer_buy_qty?: number | null
+          offer_free_qty?: number | null
           rate?: number
           taxed?: boolean
           unit?: string
@@ -175,6 +179,8 @@ export type Database = {
           hsn_code?: string | null
           id?: string
           name?: string
+          offer_buy_qty?: number | null
+          offer_free_qty?: number | null
           rate?: number
           taxed?: boolean
           unit?: string
