@@ -161,6 +161,9 @@ function CustomerModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
+  const [gst, setGst] = useState(initial?.gst_number ?? "");
+  const [pan, setPan] = useState(initial?.pan_number ?? "");
+  const [aadhaar, setAadhaar] = useState(initial?.aadhaar_number ?? "");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -174,6 +177,9 @@ function CustomerModal({
         name: trimmed,
         phone: phone.trim() || null,
         address: address.trim() || null,
+        gst_number: gst.trim().toUpperCase() || null,
+        pan_number: pan.trim().toUpperCase() || null,
+        aadhaar_number: aadhaar.trim() || null,
       };
       if (initial) {
         const { error } = await supabase.from("customers").update(payload).eq("id", initial.id);
