@@ -237,6 +237,34 @@ function CustomerModal({
               rows={3}
             />
           </Field>
+          <Field label="GST number (optional)">
+            <input
+              value={gst}
+              onChange={(e) => setGst(e.target.value)}
+              className="cust-input font-tabular uppercase"
+              placeholder="22ABCDE1234F1Z5"
+              maxLength={15}
+            />
+          </Field>
+          <Field label="PAN number (optional)">
+            <input
+              value={pan}
+              onChange={(e) => setPan(e.target.value)}
+              className="cust-input font-tabular uppercase"
+              placeholder="ABCDE1234F"
+              maxLength={10}
+            />
+          </Field>
+          <Field label="Aadhaar number (optional)">
+            <input
+              value={aadhaar}
+              onChange={(e) => setAadhaar(e.target.value.replace(/[^\d\s]/g, ""))}
+              className="cust-input font-tabular"
+              placeholder="1234 5678 9012"
+              inputMode="numeric"
+              maxLength={14}
+            />
+          </Field>
 
           <div className="flex justify-end gap-2 pt-3">
             <button type="button" onClick={onClose} className="h-10 px-4 rounded-md text-sm text-ink-2 hover:bg-cream-d press">
