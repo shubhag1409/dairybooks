@@ -19,6 +19,8 @@ type Product = {
   created_at: string;
   taxed: boolean;
   hsn_code: string | null;
+  offer_buy_qty: number | null;
+  offer_free_qty: number | null;
 };
 
 const UNITS = ["pouch", "box", "crate", "piece"] as const;
@@ -108,6 +110,7 @@ export default function Products() {
                   <Th>HSN</Th>
                   <Th className="text-right">Rate</Th>
                   <Th>Unit</Th>
+                  <Th>Offer</Th>
                   <Th className="text-right w-32">Actions</Th>
                 </tr>
               </thead>
@@ -121,6 +124,11 @@ export default function Products() {
                       ₹{Number(p.rate).toFixed(2)}
                     </Td>
                     <Td className="text-ink-3">per {p.unit}</Td>
+                    <Td className="text-ink-3 font-tabular">
+                      {p.offer_buy_qty && p.offer_free_qty
+                        ? `Buy ${p.offer_buy_qty} get ${p.offer_free_qty} free`
+                        : "—"}
+                    </Td>
                     <Td className="text-right">
                       <button
                         onClick={() => openEdit(p)}
