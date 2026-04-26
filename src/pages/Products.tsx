@@ -190,6 +190,15 @@ function ProductModal({
   );
   const [taxed, setTaxed] = useState<boolean>(initial?.taxed ?? defaultTaxed);
   const [hsn, setHsn] = useState<string>(initial?.hsn_code ?? "");
+  const [hasOffer, setHasOffer] = useState<boolean>(
+    !!(initial?.offer_buy_qty && initial?.offer_free_qty)
+  );
+  const [offerBuy, setOfferBuy] = useState<string>(
+    initial?.offer_buy_qty ? String(initial.offer_buy_qty) : ""
+  );
+  const [offerFree, setOfferFree] = useState<string>(
+    initial?.offer_free_qty ? String(initial.offer_free_qty) : ""
+  );
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -203,12 +212,33 @@ function ProductModal({
       return toast.error("HSN code must be 4–8 digits");
     }
 
+    let offerBuyNum: number | null = null;
+    let offerFreeNum: number | null = null;
+    if (hasOffer) {
+      offerBuyNum = Number(offerBuy);
+      offerFreeNum = Number(offerFree);
+      if (!Number.isInteger(offerBuyNum) || offerBuyNum <= 0) {
+        return toast.error("Buy quantity must be a whole number greater than 0");
+      }
+      if (!Number.isInteger(offerFreeNum) || offerFreeNum <= 0) {
+        return toast.error("Free quantity must be a whole number greater than 0");
+      }
+    }
+
     setBusy(true);
     try {
       if (initial) {
         const { error } = await supabase
           .from("products")
-          .update({ name: trimmed, rate: r, unit, taxed, hsn_code: hsnTrim || null })
+          .update({
+            name: trimmed,
+            rate: r,
+            unit,
+            taxed,
+            hsn_code: hsnTrim || null,
+            offer_buy_qty: offerBuyNum,
+            offer_free_qty: offerFreeNum,
+          })
           .eq("id", initial.id);
         if (error) throw error;
         toast.success("Product updated");
@@ -217,7 +247,16 @@ function ProductModal({
         if (!user) throw new Error("Not signed in");
         const { error } = await supabase
           .from("products")
-          .insert({ name: trimmed, rate: r, unit, taxed, hsn_code: hsnTrim || null, user_id: user.id });
+          .insert({
+            name: trimmed,
+            rate: r,
+            unit,
+            taxed,
+            hsn_code: hsnTrim || null,
+            offer_buy_qty: offerBuyNum,
+            offer_free_qty: offerFreeNum,
+            user_id: user.id,
+          });
         if (error) throw error;
         toast.success("Product added");
       }
