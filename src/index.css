@@ -103,6 +103,19 @@
   ::selection { background: hsl(var(--turmeric) / 0.25); color: hsl(var(--ink)); }
 }
 
+@layer base {
+  /* Prevent horizontal scroll due to off-screen elements */
+  html, body { overflow-x: hidden; }
+
+  /* Avoid iOS auto-zoom on focus by ensuring inputs are >=16px on small screens */
+  @media (max-width: 640px) {
+    input, select, textarea { font-size: 16px !important; }
+  }
+
+  /* Better tap targets */
+  button, [role="button"] { -webkit-tap-highlight-color: transparent; }
+}
+
 /* ============================================================
    Skeleton shimmer (no spinners anywhere — ever)
    ============================================================ */
