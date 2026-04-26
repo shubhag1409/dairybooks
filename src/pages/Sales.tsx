@@ -23,7 +23,7 @@ export default function Sales() {
   const load = async () => {
     const [{ data: c, error: ce }, { data: p, error: pe }, { data: s, error: se }, { data: si, error: sie }] = await Promise.all([
       supabase.from("customers").select("id,name,phone,address").order("created_at", { ascending: true }),
-      supabase.from("products").select("id,name,rate,unit").order("created_at", { ascending: true }),
+      supabase.from("products").select("id,name,rate,unit,offer_buy_qty,offer_free_qty").order("created_at", { ascending: true }),
       supabase.from("sales").select("id,date,customer_id,customers(name)").order("date", { ascending: false }).limit(30),
       supabase.from("sale_items").select("sale_id,amount"),
     ]);
