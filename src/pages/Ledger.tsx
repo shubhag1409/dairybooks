@@ -435,8 +435,8 @@ export default function Ledger() {
   );
 }
 
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <label className="flex flex-col gap-1">
+const Field = ({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) => (
+  <label className={`flex flex-col gap-1 ${className}`}>
     <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">{label}</span>
     {children}
   </label>
