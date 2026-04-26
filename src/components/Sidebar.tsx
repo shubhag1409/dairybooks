@@ -3,7 +3,7 @@
  * Fixed 236px on desktop; collapses to a top bar with menu button on mobile.
  */
 import { NavLink, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -65,10 +65,20 @@ const Item = ({ to, label, icon, end }: { to: string; label: string; icon: strin
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+
   // Close drawer on route change
-  if (mobileOpen && typeof window !== "undefined") {
-    // noop here; handled below via effect-less pattern using location dependency:
-  }
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll while drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [mobileOpen]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -142,18 +152,16 @@ export default function Sidebar() {
             onClick={() => setMobileOpen(false)}
             aria-hidden
           />
-          <div className="relative" onClick={() => setMobileOpen(false)}>
-            <div onClick={(e) => e.stopPropagation()}>{Body}</div>
+          <div className="relative animate-in slide-in-from-left duration-200">
+            {Body}
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-3 right-3 text-cream p-2 rounded hover:bg-forest-l press"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="absolute top-3 right-3 text-cream p-2 rounded hover:bg-forest-l press"
-            aria-label="Close menu"
-            // re-render trick so route change closes drawer
-            key={location.pathname}
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
       )}
     </>
