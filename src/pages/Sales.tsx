@@ -37,14 +37,35 @@ export default function Sales() {
   };
 
   useEffect(() => { load(); }, []);
-  const total = useMemo(() => (products ?? []).reduce((sum, p) => sum + (Number(qty[p.id]) || 0) * Number(p.rate || 0), 0), [products, qty]);
+  const billedQty = (p: Product, q: number) => {
+    const buy = Number(p.offer_buy_qty) || 0;
+    const free = Number(p.offer_free_qty) || 0;
+    if (buy > 0 && free > 0 && q >= buy + free) {
+      const groupSize = buy + free;
+      const freeUnits = Math.floor(q / groupSize) * free;
+      return Math.max(0, q - freeUnits);
+    }
+    return q;
+  };
+  const total = useMemo(
+    () =>
+      (products ?? []).reduce(
+        (sum, p) => sum + billedQty(p, Number(qty[p.id]) || 0) * Number(p.rate || 0),
+        0,
+      ),
+    [products, qty],
+  );
 
   const chooseCustomer = (customer: Customer) => { setSelected(customer); setStep(3); };
 
   const save = async () => {
     if (!selected) return toast.error("Pick a customer");
-    const lines = (products ?? []).map((p) => ({ product: p, quantity: Number(qty[p.id]) || 0 })).filter((x) => x.quantity > 0);
+    const lines = (products ?? [])
+      .map((p) => ({ product: p, quantity: Number(qty[p.id]) || 0 }))
+      .filter((x) => x.quantity > 0);
     if (lines.length === 0) return toast.error("Enter at least one sale quantity");
+    const bad = lines.find((x) => !Number.isInteger(x.quantity));
+    if (bad) return toast.error("Quantities must be whole numbers");
     setBusy(true);
     try {
       const userId = await getUserId();
@@ -54,7 +75,7 @@ export default function Sales() {
         sale_id: sale.id,
         product_id: product.id,
         quantity,
-        amount: quantity * Number(product.rate || 0),
+        amount: billedQty(product, quantity) * Number(product.rate || 0),
         user_id: userId,
       })));
       if (itemError) throw itemError;
