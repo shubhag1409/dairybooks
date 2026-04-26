@@ -269,9 +269,9 @@ function ProductModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-ink/45" onClick={onClose} />
-      <div className="modal-pop relative bg-card border border-border rounded-lg shadow-modal w-full max-w-md p-6">
+      <div className="modal-pop relative bg-card border border-border sm:rounded-lg shadow-modal w-full sm:max-w-md p-5 sm:p-6 max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-t-lg">
         <h3 className="font-display text-2xl text-ink">
           {initial ? "Edit product" : "Add product"}
         </h3>
