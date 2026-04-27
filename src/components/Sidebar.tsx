@@ -20,6 +20,7 @@ const NAV = [
       { to: "/sales", label: "Sales Tracking", icon: "🧾" },
       { to: "/crates", label: "Crate Management", icon: "🟩" },
       { to: "/ledger", label: "Customer Ledger", icon: "📒" },
+      { to: "/expenses", label: "Expenses", icon: "💸" },
     ],
   },
   {
