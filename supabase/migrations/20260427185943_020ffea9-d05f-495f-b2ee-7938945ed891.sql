@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN offer_free_product_id uuid;
