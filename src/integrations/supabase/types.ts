@@ -195,6 +195,7 @@ export type Database = {
           id: string
           name: string
           offer_buy_qty: number | null
+          offer_free_product_id: string | null
           offer_free_qty: number | null
           rate: number
           taxed: boolean
@@ -207,6 +208,7 @@ export type Database = {
           id?: string
           name: string
           offer_buy_qty?: number | null
+          offer_free_product_id?: string | null
           offer_free_qty?: number | null
           rate?: number
           taxed?: boolean
@@ -219,6 +221,7 @@ export type Database = {
           id?: string
           name?: string
           offer_buy_qty?: number | null
+          offer_free_product_id?: string | null
           offer_free_qty?: number | null
           rate?: number
           taxed?: boolean

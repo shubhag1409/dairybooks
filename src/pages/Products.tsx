@@ -21,6 +21,7 @@ type Product = {
   hsn_code: string | null;
   offer_buy_qty: number | null;
   offer_free_qty: number | null;
+  offer_free_product_id: string | null;
 };
 
 const UNITS = ["pouch", "box", "crate", "piece"] as const;
@@ -111,7 +112,9 @@ export default function Products() {
                   <div className="text-sm font-tabular text-ink-2 mt-1">₹{Number(p.rate).toFixed(2)} <span className="text-ink-3">· per {p.unit}</span></div>
                   {p.hsn_code && <div className="text-xs text-ink-3 mt-0.5 font-tabular">HSN: {p.hsn_code}</div>}
                   {p.offer_buy_qty && p.offer_free_qty && (
-                    <div className="text-xs text-turmeric mt-0.5">Buy {p.offer_buy_qty} get {p.offer_free_qty} free</div>
+                    <div className="text-xs text-turmeric mt-0.5">
+                      Buy {p.offer_buy_qty} get {p.offer_free_qty} {freeProductLabel(p, items)} free
+                    </div>
                   )}
                 </div>
                 <div className="flex shrink-0 gap-1">
@@ -147,7 +150,7 @@ export default function Products() {
                     <Td className="text-ink-3">per {p.unit}</Td>
                     <Td className="text-ink-3 font-tabular">
                       {p.offer_buy_qty && p.offer_free_qty
-                        ? `Buy ${p.offer_buy_qty} get ${p.offer_free_qty} free`
+                        ? `Buy ${p.offer_buy_qty} get ${p.offer_free_qty} ${freeProductLabel(p, items)} free`
                         : "—"}
                     </Td>
                     <Td className="text-right">
@@ -178,12 +181,19 @@ export default function Products() {
         <ProductModal
           initial={editing}
           defaultTaxed={tab === "taxed"}
+          allProducts={items ?? []}
           onClose={() => setOpen(false)}
           onSaved={() => { setOpen(false); load(); }}
         />
       )}
     </>
   );
+}
+
+function freeProductLabel(p: Product, all: Product[] | null): string {
+  if (!p.offer_free_product_id || p.offer_free_product_id === p.id) return "";
+  const fp = all?.find((x) => x.id === p.offer_free_product_id);
+  return fp ? `× ${fp.name}` : "";
 }
 
 const Th = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -196,11 +206,13 @@ const Td = ({ children, className = "" }: { children: React.ReactNode; className
 function ProductModal({
   initial,
   defaultTaxed,
+  allProducts,
   onClose,
   onSaved,
 }: {
   initial: Product | null;
   defaultTaxed: boolean;
+  allProducts: Product[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -220,6 +232,14 @@ function ProductModal({
   const [offerFree, setOfferFree] = useState<string>(
     initial?.offer_free_qty ? String(initial.offer_free_qty) : ""
   );
+  const [freeIsSame, setFreeIsSame] = useState<boolean>(
+    !initial?.offer_free_product_id || initial?.offer_free_product_id === initial?.id
+  );
+  const [freeProductId, setFreeProductId] = useState<string>(
+    initial?.offer_free_product_id && initial.offer_free_product_id !== initial.id
+      ? initial.offer_free_product_id
+      : ""
+  );
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -235,6 +255,7 @@ function ProductModal({
 
     let offerBuyNum: number | null = null;
     let offerFreeNum: number | null = null;
+    let offerFreeProductIdVal: string | null = null;
     if (hasOffer) {
       offerBuyNum = Number(offerBuy);
       offerFreeNum = Number(offerFree);
@@ -243,6 +264,14 @@ function ProductModal({
       }
       if (!Number.isInteger(offerFreeNum) || offerFreeNum <= 0) {
         return toast.error("Free quantity must be a whole number greater than 0");
+      }
+      if (!freeIsSame) {
+        if (!freeProductId) {
+          return toast.error("Please pick which product is given free");
+        }
+        offerFreeProductIdVal = freeProductId;
+      } else if (initial) {
+        offerFreeProductIdVal = initial.id;
       }
     }
 
@@ -259,6 +288,7 @@ function ProductModal({
             hsn_code: hsnTrim || null,
             offer_buy_qty: offerBuyNum,
             offer_free_qty: offerFreeNum,
+            offer_free_product_id: offerFreeProductIdVal,
           })
           .eq("id", initial.id);
         if (error) throw error;
@@ -276,6 +306,7 @@ function ProductModal({
             hsn_code: hsnTrim || null,
             offer_buy_qty: offerBuyNum,
             offer_free_qty: offerFreeNum,
+            offer_free_product_id: offerFreeProductIdVal,
             user_id: user.id,
           });
         if (error) throw error;
@@ -394,7 +425,8 @@ function ProductModal({
           </Field>
 
           {hasOffer && (
-            <div className="grid grid-cols-2 gap-3 p-3 rounded-md bg-cream-d/40 border border-border-l">
+            <div className="space-y-3 p-3 rounded-md bg-cream-d/40 border border-border-l">
+              <div className="grid grid-cols-2 gap-3">
               <Field label="On buying (qty)">
                 <input
                   type="number"
@@ -419,6 +451,51 @@ function ProductModal({
                   placeholder="e.g. 1"
                 />
               </Field>
+              </div>
+              <Field label="Free item is">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFreeIsSame(true)}
+                    className={`h-10 px-3 rounded-md text-sm font-medium press border ${
+                      freeIsSame
+                        ? "bg-forest text-cream border-forest"
+                        : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                    }`}
+                  >
+                    Same product
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFreeIsSame(false)}
+                    className={`h-10 px-3 rounded-md text-sm font-medium press border ${
+                      !freeIsSame
+                        ? "bg-forest text-cream border-forest"
+                        : "bg-card text-ink-2 border-border hover:bg-cream-d"
+                    }`}
+                  >
+                    Different product
+                  </button>
+                </div>
+              </Field>
+              {!freeIsSame && (
+                <Field label="Free product">
+                  <select
+                    value={freeProductId}
+                    onChange={(e) => setFreeProductId(e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Select a product…</option>
+                    {allProducts
+                      .filter((p) => !initial || p.id !== initial.id)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                </Field>
+              )}
             </div>
           )}
 
