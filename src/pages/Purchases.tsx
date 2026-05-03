@@ -60,6 +60,16 @@ export default function Purchases() {
       })));
       if (itemError) throw itemError;
       toast.success("Purchase saved");
+      // Add inventory adjustments
+      const adjustments = lines.map(({ product, qty }) => ({
+        user_id: userId,
+        product_id: product.id,
+        quantity: qty,
+        reason: "purchase",
+        reference_id: purchase.id,
+        date,
+      }));
+      await supabase.from("inventory_adjustments").insert(adjustments);
       setQuantities({});
       setFile(null);
       load();
@@ -72,6 +82,8 @@ export default function Purchases() {
 
   const remove = async (id: string) => {
     if (!window.confirm("Delete this purchase entry?")) return;
+    // Remove related inventory adjustments first
+    await supabase.from("inventory_adjustments").delete().eq("reference_id", id).eq("reason", "purchase");
     const { error } = await supabase.from("purchases").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Purchase deleted");
