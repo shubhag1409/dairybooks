@@ -21,6 +21,7 @@ const NAV = [
       { to: "/crates", label: "Crate Management", icon: "🟩" },
       { to: "/ledger", label: "Customer Ledger", icon: "📒" },
       { to: "/expenses", label: "Expenses", icon: "💸" },
+      { to: "/inventory", label: "Inventory", icon: "📋" },
     ],
   },
   {
