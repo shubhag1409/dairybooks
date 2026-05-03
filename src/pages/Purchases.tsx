@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Upload, Save, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { Upload, Save, Trash2, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
@@ -17,16 +17,18 @@ export default function Purchases() {
   const [file, setFile] = useState<File | null>(null);
   const [history, setHistory] = useState<(PurchaseRow & { total: number })[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [allItems, setAllItems] = useState<ItemRow[]>([]);
 
   const load = async () => {
     const [{ data: productsData, error: productError }, { data: purchases, error: purchaseError }, { data: items, error: itemError }] = await Promise.all([
       supabase.from("products").select("id,name,rate,unit").order("created_at", { ascending: true }),
       supabase.from("purchases").select("id,date,invoice_path").order("date", { ascending: false }).limit(30),
-      supabase.from("purchase_items").select("id,purchase_id,product_id,quantity,price"),
+      supabase.from("purchase_items").select("id,purchase_id,product_id,quantity,price").limit(5000),
     ]);
     const error = productError || purchaseError || itemError;
     showApiError(error, "Could not load purchase data");
     setProducts((productsData as Product[]) ?? []);
+    setAllItems((items as ItemRow[]) ?? []);
     const totals = new Map<string, number>();
     ((items as ItemRow[]) ?? []).forEach((item) => totals.set(item.purchase_id, (totals.get(item.purchase_id) ?? 0) + Number(item.price || 0)));
     setHistory(((purchases as PurchaseRow[]) ?? []).map((p) => ({ ...p, total: totals.get(p.id) ?? 0 })));
@@ -107,7 +109,7 @@ export default function Purchases() {
             </div>
             <div className="p-4 sm:p-5 border-t border-border flex flex-wrap items-center justify-between gap-3 bg-cream-d/45"><div><div className="text-xs uppercase tracking-wider text-ink-3 font-semibold">Total purchase</div><div className="font-tabular text-2xl text-ink">{inr(total)}</div></div><button onClick={save} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60 inline-flex items-center gap-2"><Save className="h-4 w-4" />{busy ? "Saving…" : "Save purchase"}</button></div>
           </section>
-          <History history={history} onDelete={remove} />
+          <History history={history} onDelete={remove} products={products} allItems={allItems} />
         </div>
       )}
       <style>{inputCss}</style>
@@ -115,9 +117,85 @@ export default function Purchases() {
   );
 }
 
-function History({ history, onDelete }: { history: (PurchaseRow & { total: number })[] | null; onDelete: (id: string) => void }) {
+function History({ history, onDelete, products, allItems }: { history: (PurchaseRow & { total: number })[] | null; onDelete: (id: string) => void; products: Product[]; allItems: ItemRow[] }) {
+  const [searchDate, setSearchDate] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   if (!history) return <TableSkeleton rows={5} cols={2} />;
-  return <aside className="bg-card border border-border rounded-lg shadow-card p-5 h-fit"><h2 className="font-display text-xl text-ink mb-4">Recent purchases</h2>{history.length === 0 ? <p className="text-sm text-ink-3">No purchases recorded yet.</p> : <div className="space-y-3">{history.map((p) => <div key={p.id} className="border border-border rounded-md p-3 flex items-center justify-between gap-3"><div><div className="text-sm font-medium text-ink">{p.date}</div><div className="text-xs text-ink-3 font-tabular">{inr(p.total)}{p.invoice_path ? " · invoice" : ""}</div></div><button onClick={() => onDelete(p.id)} className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-cream-d text-ink-3 hover:text-danger press" aria-label="Delete purchase"><Trash2 className="h-4 w-4" /></button></div>)}</div>}</aside>;
+
+  const filtered = searchDate ? history.filter((p) => p.date === searchDate) : history;
+  const productName = (id: string) => products.find((p) => p.id === id)?.name ?? "Unknown";
+  const productUnit = (id: string) => products.find((p) => p.id === id)?.unit ?? "";
+
+  return (
+    <aside className="bg-card border border-border rounded-lg shadow-card p-5 h-fit">
+      <h2 className="font-display text-xl text-ink mb-3">Purchase History</h2>
+      <div className="flex items-center gap-2 mb-4">
+        <Search className="h-4 w-4 text-ink-3" />
+        <input
+          type="date"
+          value={searchDate}
+          onChange={(e) => setSearchDate(e.target.value)}
+          className="input flex-1 text-sm"
+          placeholder="Search by date"
+        />
+        {searchDate && (
+          <button onClick={() => setSearchDate("")} className="text-xs text-ink-3 hover:text-forest underline">Clear</button>
+        )}
+      </div>
+      {filtered.length === 0 ? (
+        <p className="text-sm text-ink-3">{searchDate ? `No purchases on ${searchDate}.` : "No purchases recorded yet."}</p>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((p) => {
+            const isExpanded = expandedId === p.id;
+            const items = allItems.filter((i) => i.purchase_id === p.id);
+            return (
+              <div key={p.id} className="border border-border rounded-md overflow-hidden">
+                <div className="p-3 flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                    className="flex-1 text-left flex items-center gap-2"
+                  >
+                    {isExpanded ? <ChevronUp className="h-4 w-4 text-ink-3" /> : <ChevronDown className="h-4 w-4 text-ink-3" />}
+                    <div>
+                      <div className="text-sm font-medium text-ink">{p.date}</div>
+                      <div className="text-xs text-ink-3 font-tabular">{inr(p.total)}{p.invoice_path ? " · invoice" : ""}</div>
+                    </div>
+                  </button>
+                  <button onClick={() => onDelete(p.id)} className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-cream-d text-ink-3 hover:text-danger press" aria-label="Delete purchase">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                {isExpanded && items.length > 0 && (
+                  <div className="border-t border-border bg-cream-d/30 px-3 py-2">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-ink-3">
+                          <th className="text-left py-1 font-semibold">Product</th>
+                          <th className="text-right py-1 font-semibold">Qty</th>
+                          <th className="text-right py-1 font-semibold">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item) => (
+                          <tr key={item.id} className="border-t border-border-l">
+                            <td className="py-1.5 text-ink font-medium">{productName(item.product_id)}</td>
+                            <td className="py-1.5 text-right font-tabular text-ink-2">{item.quantity} {productUnit(item.product_id)}</td>
+                            <td className="py-1.5 text-right font-tabular text-ink">{inr(Number(item.price))}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </aside>
+  );
 }
 const Th = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <th className={`px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider ${className}`}>{children}</th>;
 const Td = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <td className={`px-4 py-3.5 text-sm ${className}`}>{children}</td>;
