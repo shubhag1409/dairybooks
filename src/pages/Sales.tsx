@@ -80,6 +80,16 @@ export default function Sales() {
       })));
       if (itemError) throw itemError;
       toast.success("Sale saved");
+      // Deduct from inventory
+      const adjustments = lines.map(({ product, quantity }) => ({
+        user_id: userId,
+        product_id: product.id,
+        quantity: -quantity,
+        reason: "sale",
+        reference_id: sale.id,
+        date,
+      }));
+      await supabase.from("inventory_adjustments").insert(adjustments);
       setQty({});
       setStep(2);
       load();
@@ -92,6 +102,8 @@ export default function Sales() {
 
   const remove = async (id: string) => {
     if (!window.confirm("Delete this sale entry?")) return;
+    // Remove related inventory adjustments first
+    await supabase.from("inventory_adjustments").delete().eq("reference_id", id).eq("reason", "sale");
     const { error } = await supabase.from("sales").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Sale deleted");
