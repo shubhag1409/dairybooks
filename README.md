@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# Welcome to your Dairy project
 
 TODO: Document your project here
