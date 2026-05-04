@@ -24,10 +24,10 @@ export const getUserId = async () => {
 
 export const showApiError = (error: unknown, fallback = "Could not fetch data") => {
   if (!error) return false;
-  const message = error instanceof Error ? error.message : typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message) : fallback;
+  const message = sanitizeDbError(error instanceof Error ? error.message : typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message) : fallback);
   const isNetwork = message.toLowerCase().includes("failed to fetch");
   toast.error(isNetwork ? "Could not reach DairyBook data" : fallback, {
-    description: isNetwork ? "Check your connection and try signing in again." : message,
+    description: isNetwork ? "Check your connection and try signing in again." : undefined,
   });
   return true;
 };
@@ -47,3 +47,23 @@ export type Product = {
   offer_free_qty?: number | null;
 };
 export type Customer = { id: string; name: string; phone: string | null; address: string | null };
+
+/** Map raw DB/Supabase errors to user-friendly messages */
+export const sanitizeDbError = (raw: string): string => {
+  if (/duplicate key|unique.?constraint|23505/i.test(raw)) return "A record with this data already exists.";
+  if (/foreign key|23503/i.test(raw)) return "This record is linked to other data. Remove those first.";
+  if (/not-null|23502/i.test(raw)) return "A required field is missing.";
+  if (/permission denied|42501/i.test(raw)) return "You don't have permission for this action.";
+  if (/row.level.security|new row violates/i.test(raw)) return "Access denied by security policy.";
+  if (/failed to fetch/i.test(raw)) return raw;
+  // If it looks like a raw postgres message, hide it
+  if (/violates|constraint|relation|column|pg_/i.test(raw)) return "Something went wrong. Please try again.";
+  return raw;
+};
+
+/** Show a safe toast error from a caught exception */
+export const safeErrorToast = (err: unknown, fallback: string) => {
+  const raw = err instanceof Error ? err.message : typeof err === "object" && err && "message" in err ? String((err as any).message) : "";
+  const msg = raw ? sanitizeDbError(raw) : fallback;
+  toast.error(msg === raw && /violates|constraint/i.test(msg) ? fallback : msg || fallback);
+};
