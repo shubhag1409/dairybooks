@@ -96,7 +96,7 @@ export default function Settings() {
       if (error) throw error;
       toast.success("Business details saved");
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not save settings");
+      safeErrorToast(e, "Could not save settings");
     } finally {
       setBusy(false);
     }
