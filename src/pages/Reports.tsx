@@ -4,7 +4,7 @@ import { Download, Mail } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { currentMonth, inr, monthBounds, throwApiError } from "@/lib/dairy";
+import { currentMonth, inr, monthBounds, throwApiError , safeErrorToast } from "@/lib/dairy";
 
 export default function Reports() {
   const [month, setMonth] = useState(currentMonth());

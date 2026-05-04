@@ -8,7 +8,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { showApiError } from "@/lib/dairy";
+import { showApiError , safeErrorToast } from "@/lib/dairy";
 
 type Customer = {
   id: string;

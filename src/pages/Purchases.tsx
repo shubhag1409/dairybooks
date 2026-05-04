@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, inr, Product, showApiError, todayISO } from "@/lib/dairy";
+import { getUserId, inr, Product, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type PurchaseRow = { id: string; date: string; invoice_path: string | null };
 type ItemRow = { id: string; purchase_id: string; product_id: string; quantity: number; price: number };

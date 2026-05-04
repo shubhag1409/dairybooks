@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, showApiError, todayISO } from "@/lib/dairy";
+import { getUserId, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type Expense = { id: string; date: string; category: string; description: string | null; amount: number };
 

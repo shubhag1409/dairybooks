@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, inr, Product, showApiError, todayISO } from "@/lib/dairy";
+import { getUserId, inr, Product, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type Adjustment = {
   id: string;

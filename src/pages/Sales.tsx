@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { CustomerGridSkeleton, TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { Customer, getUserId, inr, Product, showApiError, todayISO } from "@/lib/dairy";
+import { Customer, getUserId, inr, Product, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type Sale = { id: string; date: string; customer_id: string; customers?: { name: string } | null };
 type SaleItem = { sale_id: string; amount: number };
