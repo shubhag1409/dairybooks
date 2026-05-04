@@ -3,7 +3,7 @@ import { Save, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, showApiError } from "@/lib/dairy";
+import { getUserId, showApiError, safeErrorToast } from "@/lib/dairy";
 
 type BusinessInfo = {
   business_name: string;
