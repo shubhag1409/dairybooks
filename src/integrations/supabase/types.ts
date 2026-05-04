@@ -390,7 +390,7 @@ export type Database = {
           date: string
           id: string
           note: string | null
-          sale_id: string
+          sale_id: string | null
           user_id: string
         }
         Insert: {
@@ -400,7 +400,7 @@ export type Database = {
           date?: string
           id?: string
           note?: string | null
-          sale_id: string
+          sale_id?: string | null
           user_id: string
         }
         Update: {
@@ -410,7 +410,7 @@ export type Database = {
           date?: string
           id?: string
           note?: string | null
-          sale_id?: string
+          sale_id?: string | null
           user_id?: string
         }
         Relationships: []
