@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Trash2 } from "lucide-react";
+import { Minus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
@@ -91,10 +91,43 @@ export default function Inventory() {
 
   const deleteAdjustment = async (id: string) => {
     if (!window.confirm("Delete this adjustment?")) return;
-    const { error } = await supabase.from("inventory_adjustments").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    const { error } = await supabase.from("inventory_adjustments").delete().eq("id", id);    if (error) return toast.error("Could not delete adjustment");
     toast.success("Adjustment deleted");
     load();
+  };
+
+  const handleResetStock = async () => {
+    if (!window.confirm("Are you sure you want to reset ALL stock to 0? This cannot be undone.")) return;
+    setBusy(true);
+    try {
+      const userId = await getUserId();
+      const rows: { user_id: string; product_id: string; quantity: number; reason: string; note: string; date: string }[] = [];
+      for (const [pid, qty] of stock.entries()) {
+        if (qty !== 0) {
+          rows.push({
+            user_id: userId,
+            product_id: pid,
+            quantity: -qty,
+            reason: "reset",
+            note: "Stock reset to 0",
+            date: todayISO(),
+          });
+        }
+      }
+      if (rows.length === 0) {
+        toast.info("Stock is already at 0 for all products");
+        setBusy(false);
+        return;
+      }
+      const { error } = await supabase.from("inventory_adjustments").insert(rows);
+      if (error) throw error;
+      toast.success("All stock has been reset to 0");
+      load();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Could not reset stock");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const productName = (id: string) => (products ?? []).find((p) => p.id === id)?.name ?? "Unknown";
@@ -116,6 +149,15 @@ export default function Inventory() {
       <section className="bg-card border border-border rounded-lg shadow-card overflow-hidden mb-4 sm:mb-5">
         <div className="p-4 sm:p-5 border-b border-border flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl text-ink">Current Stock</h2>
+          <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleResetStock}
+            disabled={busy}
+            className="h-9 px-4 rounded-md border border-border text-sm font-medium text-ink-2 hover:bg-cream-d press inline-flex items-center gap-2 disabled:opacity-60"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset Stock
+          </button>
           <button
             onClick={() => setShowRemove(true)}
             className="h-9 px-4 rounded-md bg-danger text-cream text-sm font-medium hover:bg-danger/90 press inline-flex items-center gap-2"
@@ -123,6 +165,7 @@ export default function Inventory() {
             <Minus className="h-4 w-4" />
             Remove Stock
           </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[400px]">
