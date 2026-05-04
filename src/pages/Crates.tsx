@@ -37,12 +37,12 @@ export default function Crates() {
       setReceived("0");
       setGiven("0");
       load();
-    } catch (err: any) { toast.error(err?.message ?? "Could not save crates"); } finally { setBusy(false); }
+    } catch (err: any) { safeErrorToast(err, "Could not save crates"); } finally { setBusy(false); }
   };
   const remove = async (id: string) => {
     if (!window.confirm("Delete this crate entry?")) return;
     const { error } = await supabase.from("crates").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Crate entry deleted");
     load();
   };

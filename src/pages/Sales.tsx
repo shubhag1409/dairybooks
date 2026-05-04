@@ -94,7 +94,7 @@ export default function Sales() {
       setStep(2);
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not save sale");
+      safeErrorToast(err, "Could not save sale");
     } finally {
       setBusy(false);
     }
@@ -105,7 +105,7 @@ export default function Sales() {
     // Remove related inventory adjustments first
     await supabase.from("inventory_adjustments").delete().eq("reference_id", id).eq("reason", "sale");
     const { error } = await supabase.from("sales").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Sale deleted");
     load();
   };

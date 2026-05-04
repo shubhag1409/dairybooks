@@ -70,7 +70,7 @@ export default function Expenses() {
       }
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not save expense");
+      safeErrorToast(err, "Could not save expense");
     } finally {
       setBusy(false);
     }
@@ -79,7 +79,7 @@ export default function Expenses() {
   const remove = async (id: string) => {
     if (!window.confirm("Delete this expense?")) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Expense deleted");
     load();
   };

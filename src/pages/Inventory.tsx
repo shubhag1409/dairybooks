@@ -83,7 +83,7 @@ export default function Inventory() {
       setRemoveNote("");
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not remove stock");
+      safeErrorToast(err, "Could not remove stock");
     } finally {
       setBusy(false);
     }
@@ -124,7 +124,7 @@ export default function Inventory() {
       toast.success("All stock has been reset to 0");
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not reset stock");
+      safeErrorToast(err, "Could not reset stock");
     } finally {
       setBusy(false);
     }

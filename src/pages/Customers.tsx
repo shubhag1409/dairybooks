@@ -40,7 +40,7 @@ export default function Customers() {
   const onDelete = async (c: Customer) => {
     if (!window.confirm(`Remove "${c.name}"? Their existing sales records will be removed too.`)) return;
     const { error } = await supabase.from("customers").delete().eq("id", c.id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Customer removed");
     load();
   };
@@ -220,7 +220,7 @@ function CustomerModal({
       }
       onSaved();
     } catch (err: any) {
-      toast.error(err?.message ?? "Save failed");
+      safeErrorToast(err, "Save failed");
     } finally {
       setBusy(false);
     }

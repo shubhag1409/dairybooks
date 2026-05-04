@@ -63,7 +63,7 @@ export default function Reports() {
       a.click();
       URL.revokeObjectURL(url);
       toast.success("Report downloaded");
-    } catch (err: any) { toast.error(err?.message ?? "Could not create report"); } finally { setBusy(false); }
+    } catch (err: any) { safeErrorToast(err, "Could not create report"); } finally { setBusy(false); }
   };
 
   return <><PageHeader title="Reports & Export" subtitle="Download a monthly Excel workbook for your CA." /><section className="bg-card border border-border rounded-lg shadow-card p-6 max-w-2xl"><div className="grid sm:grid-cols-[1fr_auto_auto] gap-3 items-end"><label className="text-xs font-medium text-ink-2">Report month<input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="input mt-1.5" /></label><button onClick={download} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60 inline-flex items-center justify-center gap-2"><Download className="h-4 w-4" />{busy ? "Preparing…" : "Download Excel"}</button><button disabled className="h-10 px-5 rounded-md border border-border text-ink-3 text-sm inline-flex items-center justify-center gap-2 cursor-not-allowed"><Mail className="h-4 w-4" />Email CA</button></div><p className="text-sm text-ink-3 mt-5">Email sending needs an email domain setup first. Download works now.</p></section><style>{inputCss}</style></>;
