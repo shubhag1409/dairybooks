@@ -8,7 +8,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import { showApiError } from "@/lib/dairy";
+import { showApiError , safeErrorToast } from "@/lib/dairy";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type Product = {
@@ -46,7 +46,7 @@ export default function Products() {
   const onDelete = async (p: Product) => {
     if (!window.confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
     const { error } = await supabase.from("products").delete().eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Product deleted");
     load();
   };
@@ -314,7 +314,7 @@ function ProductModal({
       }
       onSaved();
     } catch (err: any) {
-      toast.error(err?.message ?? "Save failed");
+      safeErrorToast(err, "Save failed");
     } finally {
       setBusy(false);
     }

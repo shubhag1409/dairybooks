@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, inr, Product, showApiError, todayISO } from "@/lib/dairy";
+import { getUserId, inr, Product, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type PurchaseRow = { id: string; date: string; invoice_path: string | null };
 type ItemRow = { id: string; purchase_id: string; product_id: string; quantity: number; price: number };
@@ -76,7 +76,7 @@ export default function Purchases() {
       setFile(null);
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not save purchase");
+      safeErrorToast(err, "Could not save purchase");
     } finally {
       setBusy(false);
     }
@@ -87,7 +87,7 @@ export default function Purchases() {
     // Remove related inventory adjustments first
     await supabase.from("inventory_adjustments").delete().eq("reference_id", id).eq("reason", "purchase");
     const { error } = await supabase.from("purchases").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Purchase deleted");
     load();
   };

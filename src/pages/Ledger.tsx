@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { Customer, getUserId, inr, showApiError, todayISO } from "@/lib/dairy";
+import { Customer, getUserId, inr, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type SaleRow = { id: string; date: string; customer_id: string };
 type SaleItemRow = { sale_id: string; quantity: number; amount: number; product_id: string };
@@ -122,7 +122,7 @@ export default function Ledger() {
       setCrateNote("");
       loadDetail(selectedCustomer.id);
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not save crate entry");
+      safeErrorToast(err, "Could not save crate entry");
     } finally {
       setCrateBusy(false);
     }
@@ -131,7 +131,7 @@ export default function Ledger() {
   const removeCrate = async (id: string) => {
     if (!window.confirm("Delete this crate entry?")) return;
     const { error } = await supabase.from("customer_crates").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Crate entry removed");
     if (selectedId) loadDetail(selectedId);
   };
@@ -192,7 +192,7 @@ export default function Ledger() {
       setPaySaleId("");
       loadDetail(selectedCustomer.id);
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not save payment");
+      safeErrorToast(err, "Could not save payment");
     } finally {
       setBusy(false);
     }
@@ -201,7 +201,7 @@ export default function Ledger() {
   const removePayment = async (id: string) => {
     if (!window.confirm("Delete this payment?")) return;
     const { error } = await supabase.from("sale_payments").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Payment removed");
     if (selectedId) loadDetail(selectedId);
   };

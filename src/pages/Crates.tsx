@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, showApiError, todayISO } from "@/lib/dairy";
+import { getUserId, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type Crate = { id: string; date: string; opening_stock: number; received: number; given: number; closing_stock: number };
 
@@ -37,12 +37,12 @@ export default function Crates() {
       setReceived("0");
       setGiven("0");
       load();
-    } catch (err: any) { toast.error(err?.message ?? "Could not save crates"); } finally { setBusy(false); }
+    } catch (err: any) { safeErrorToast(err, "Could not save crates"); } finally { setBusy(false); }
   };
   const remove = async (id: string) => {
     if (!window.confirm("Delete this crate entry?")) return;
     const { error } = await supabase.from("crates").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) return safeErrorToast(error, "Operation failed");
     toast.success("Crate entry deleted");
     load();
   };

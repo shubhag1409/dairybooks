@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { getUserId, inr, Product, showApiError, todayISO } from "@/lib/dairy";
+import { getUserId, inr, Product, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type Adjustment = {
   id: string;
@@ -83,7 +83,7 @@ export default function Inventory() {
       setRemoveNote("");
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not remove stock");
+      safeErrorToast(err, "Could not remove stock");
     } finally {
       setBusy(false);
     }
@@ -91,7 +91,8 @@ export default function Inventory() {
 
   const deleteAdjustment = async (id: string) => {
     if (!window.confirm("Delete this adjustment?")) return;
-    const { error } = await supabase.from("inventory_adjustments").delete().eq("id", id);    if (error) return toast.error("Could not delete adjustment");
+    const { error } = await supabase.from("inventory_adjustments").delete().eq("id", id);
+    if (error) return safeErrorToast(error, "Could not delete adjustment");
     toast.success("Adjustment deleted");
     load();
   };
@@ -124,7 +125,7 @@ export default function Inventory() {
       toast.success("All stock has been reset to 0");
       load();
     } catch (err: any) {
-      toast.error(err?.message ?? "Could not reset stock");
+      safeErrorToast(err, "Could not reset stock");
     } finally {
       setBusy(false);
     }
