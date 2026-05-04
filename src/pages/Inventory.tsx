@@ -91,7 +91,8 @@ export default function Inventory() {
 
   const deleteAdjustment = async (id: string) => {
     if (!window.confirm("Delete this adjustment?")) return;
-    const { error } = await supabase.from("inventory_adjustments").delete().eq("id", id);    if (error) return toast.error("Could not delete adjustment");
+    const { error } = await supabase.from("inventory_adjustments").delete().eq("id", id);
+    if (error) return safeErrorToast(error, "Could not delete adjustment");
     toast.success("Adjustment deleted");
     load();
   };
