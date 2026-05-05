@@ -22,6 +22,7 @@ const NAV = [
       { to: "/ledger", label: "Customer Ledger", icon: "📒" },
       { to: "/expenses", label: "Expenses", icon: "💸" },
       { to: "/inventory", label: "Inventory", icon: "📋" },
+      { to: "/tagada", label: "Tagada (Dues)", icon: "💰" },
     ],
   },
   {
