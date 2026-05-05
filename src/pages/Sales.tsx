@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Customer, getUserId, inr, Product, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
 
 type Sale = { id: string; date: string; customer_id: string; customers?: { name: string } | null };
-type SaleItem = { sale_id: string; amount: number };
+type SaleItem = { sale_id: string; amount: number; quantity: number; product_id: string };
+type SaleItemDetail = { product_name: string; quantity: number; amount: number };
 
 export default function Sales() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -19,13 +20,15 @@ export default function Sales() {
   const [qty, setQty] = useState<Record<string, string>>({});
   const [history, setHistory] = useState<(Sale & { total: number })[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [expandedSale, setExpandedSale] = useState<string | null>(null);
+  const [saleDetails, setSaleDetails] = useState<Map<string, SaleItemDetail[]>>(new Map());
 
   const load = async () => {
     const [{ data: c, error: ce }, { data: p, error: pe }, { data: s, error: se }, { data: si, error: sie }] = await Promise.all([
       supabase.from("customers").select("id,name,phone,address").order("created_at", { ascending: true }),
       supabase.from("products").select("id,name,rate,unit,offer_buy_qty,offer_free_qty").order("created_at", { ascending: true }),
       supabase.from("sales").select("id,date,customer_id,customers(name)").order("date", { ascending: false }).limit(30),
-      supabase.from("sale_items").select("sale_id,amount"),
+      supabase.from("sale_items").select("sale_id,amount,quantity,product_id"),
     ]);
     const error = ce || pe || se || sie;
     showApiError(error, "Could not load sales data");
@@ -34,6 +37,20 @@ export default function Sales() {
     const totals = new Map<string, number>();
     ((si as SaleItem[]) ?? []).forEach((item) => totals.set(item.sale_id, (totals.get(item.sale_id) ?? 0) + Number(item.amount || 0)));
     setHistory(((s as Sale[]) ?? []).map((sale) => ({ ...sale, total: totals.get(sale.id) ?? 0 })));
+
+    // Build detail map for expandable view
+    const productMap = new Map<string, string>();
+    ((p as Product[]) ?? []).forEach((pr) => productMap.set(pr.id, pr.name));
+    const detailMap = new Map<string, SaleItemDetail[]>();
+    ((si as SaleItem[]) ?? []).forEach((item) => {
+      if (!detailMap.has(item.sale_id)) detailMap.set(item.sale_id, []);
+      detailMap.get(item.sale_id)!.push({
+        product_name: productMap.get(item.product_id) ?? "Unknown",
+        quantity: Number(item.quantity),
+        amount: Number(item.amount),
+      });
+    });
+    setSaleDetails(detailMap);
   };
 
   useEffect(() => { load(); }, []);
@@ -122,7 +139,63 @@ export default function Sales() {
           {step === 2 && (customers === null ? <CustomerGridSkeleton /> : customers.length === 0 ? <EmptyState icon="👥" title="Add customers first" description="Sales entry needs customers on your route." /> : <><button onClick={() => setStep(1)} className="mb-4 text-sm text-ink-3 hover:text-forest inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" />Change date</button><div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">{customers.map((c) => <button key={c.id} onClick={() => chooseCustomer(c)} className="text-left border border-border rounded-lg p-4 bg-cream-d/30 hover:border-turmeric/50 hover:bg-card lift"><div className="font-medium text-ink">{c.name}</div><div className="text-xs text-ink-3 mt-1">{c.phone || c.address || "No details"}</div></button>)}</div></>)}
           {step === 3 && (!selected || products === null ? <TableSkeleton rows={5} cols={4} /> : products.length === 0 ? <EmptyState icon="🥛" title="Add products first" /> : <><button onClick={() => setStep(2)} className="mb-4 text-sm text-ink-3 hover:text-forest inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" />Back to customers</button><div className="mb-5"><h2 className="font-display text-xl sm:text-2xl text-ink">{selected.name}</h2><p className="text-sm text-ink-3">Sale date: {date}</p></div><div className="overflow-x-auto -mx-4 sm:mx-0 border-y sm:border border-border sm:rounded-lg"><table className="w-full min-w-[480px]"><thead className="bg-forest text-cream"><tr><Th>Product</Th><Th className="text-right">Rate</Th><Th className="text-right">Qty</Th><Th className="text-right">Amount</Th></tr></thead><tbody>{products.map((p) => { const q = Number(qty[p.id]) || 0; const billed = billedQty(p, q); const free = q - billed; return <tr key={p.id} className="border-t border-border-l"><Td className="font-medium text-ink">{p.name}{p.offer_buy_qty && p.offer_free_qty ? <div className="text-xs text-turmeric font-normal mt-0.5">Buy {p.offer_buy_qty} get {p.offer_free_qty} free</div> : null}</Td><Td className="text-right font-tabular">{inr(Number(p.rate))}</Td><Td className="text-right"><input value={qty[p.id] ?? ""} onChange={(e) => { const v = e.target.value; if (v === "" || /^\d+$/.test(v)) setQty((old) => ({ ...old, [p.id]: v })); }} type="number" min="0" step="1" inputMode="numeric" className="input text-right font-tabular w-20 sm:w-28" placeholder="0" />{free > 0 ? <div className="text-[11px] text-ink-3 mt-1">+{free} free</div> : null}</Td><Td className="text-right font-tabular text-ink">{inr(billed * Number(p.rate || 0))}</Td></tr>; })}</tbody></table></div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs uppercase tracking-wider text-ink-3 font-semibold">Bill total</div><div className="font-tabular text-2xl text-ink">{inr(total)}</div></div><button onClick={save} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60 inline-flex items-center gap-2"><Save className="h-4 w-4" />{busy ? "Saving…" : "Save sale"}</button></div></>)}
         </section>
-        <aside className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5 h-fit"><h2 className="font-display text-xl text-ink mb-4">Recent sales</h2>{history === null ? <TableSkeleton rows={4} cols={2} /> : history.length === 0 ? <p className="text-sm text-ink-3">No sales recorded yet.</p> : <div className="space-y-3">{history.map((s) => <div key={s.id} className="border border-border rounded-md p-3 flex items-center justify-between gap-3"><div className="min-w-0"><div className="text-sm font-medium text-ink truncate">{s.customers?.name ?? "Customer"}</div><div className="text-xs text-ink-3 font-tabular">{s.date} · {inr(s.total)}</div></div><button onClick={() => remove(s.id)} className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded hover:bg-cream-d text-ink-3 hover:text-danger press"><Trash2 className="h-4 w-4" /></button></div>)}</div>}</aside>
+        <aside className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5 h-fit">
+          <h2 className="font-display text-xl text-ink mb-4">Recent sales</h2>
+          {history === null ? (
+            <TableSkeleton rows={4} cols={2} />
+          ) : history.length === 0 ? (
+            <p className="text-sm text-ink-3">No sales recorded yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {history.map((s) => (
+                <div key={s.id} className="border border-border rounded-md overflow-hidden">
+                  <div className="p-3 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => setExpandedSale((prev) => (prev === s.id ? null : s.id))}
+                      className="flex-1 min-w-0 text-left flex items-center gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-ink truncate">{s.customers?.name ?? "Customer"}</div>
+                        <div className="text-xs text-ink-3 font-tabular">{s.date} · {inr(s.total)}</div>
+                      </div>
+                      {expandedSale === s.id ? (
+                        <ChevronUp className="h-4 w-4 text-ink-3 shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-ink-3 shrink-0" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => remove(s.id)}
+                      className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded hover:bg-cream-d text-ink-3 hover:text-danger press"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {expandedSale === s.id && (
+                    <div className="border-t border-border bg-cream-d/30 px-3 py-2 space-y-1">
+                      {(saleDetails.get(s.id) ?? []).length === 0 ? (
+                        <p className="text-xs text-ink-3">No items</p>
+                      ) : (
+                        (saleDetails.get(s.id) ?? []).map((item, i) => (
+                          <div key={i} className="flex justify-between text-xs">
+                            <span className="text-ink truncate">
+                              {item.product_name} × {item.quantity}
+                            </span>
+                            <span className="font-tabular text-ink-3 shrink-0 ml-2">{inr(item.amount)}</span>
+                          </div>
+                        ))
+                      )}
+                      <div className="flex justify-between text-xs font-semibold pt-1 border-t border-border">
+                        <span className="text-ink">Total</span>
+                        <span className="font-tabular text-ink">{inr(s.total)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
       </div>
       <style>{inputCss}</style>
     </>
