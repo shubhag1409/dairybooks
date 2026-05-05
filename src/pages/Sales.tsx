@@ -86,24 +86,52 @@ export default function Sales() {
     setBusy(true);
     try {
       const userId = await getUserId();
-      const { data: sale, error: saleError } = await supabase.from("sales").insert({ date, customer_id: selected.id, user_id: userId }).select("id").single();
-      if (saleError) throw saleError;
+
+      // Check if a sale already exists for this customer + date
+      const { data: existingSales } = await supabase
+        .from("sales")
+        .select("id")
+        .eq("customer_id", selected.id)
+        .eq("date", date)
+        .eq("user_id", userId)
+        .limit(1);
+
+      let saleId: string;
+      let isAddition = false;
+
+      if (existingSales && existingSales.length > 0) {
+        // Use existing sale
+        saleId = existingSales[0].id;
+        isAddition = true;
+      } else {
+        // Create new sale
+        const { data: sale, error: saleError } = await supabase
+          .from("sales")
+          .insert({ date, customer_id: selected.id, user_id: userId })
+          .select("id")
+          .single();
+        if (saleError) throw saleError;
+        saleId = sale.id;
+      }
+
       const { error: itemError } = await supabase.from("sale_items").insert(lines.map(({ product, quantity }) => ({
-        sale_id: sale.id,
+        sale_id: saleId,
         product_id: product.id,
         quantity,
         amount: billedQty(product, quantity) * Number(product.rate || 0),
         user_id: userId,
       })));
       if (itemError) throw itemError;
-      toast.success("Sale saved");
+
+      toast.success(isAddition ? "Data has been added in the sales" : "Sale saved");
+
       // Deduct from inventory
       const adjustments = lines.map(({ product, quantity }) => ({
         user_id: userId,
         product_id: product.id,
         quantity: -quantity,
         reason: "sale",
-        reference_id: sale.id,
+        reference_id: saleId,
         date,
       }));
       await supabase.from("inventory_adjustments").insert(adjustments);
