@@ -82,7 +82,7 @@ export default function Sales() {
       });
     });
     setSaleDetails(detailMap);
-  };
+  }, [filterMode, filterDate, filterType, filterCustomer]);
 
   useEffect(() => { load(); }, [filterMode, filterDate, filterType, filterCustomer]);
   const billedQty = (p: Product, q: number) => {
