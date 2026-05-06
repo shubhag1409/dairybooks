@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronUp, Save, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { ArrowLeft, CalendarIcon, ChevronDown, ChevronUp, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { CustomerGridSkeleton, TableSkeleton } from "@/components/Skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { Customer, getUserId, inr, Product, showApiError, todayISO , safeErrorToast } from "@/lib/dairy";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type Sale = { id: string; date: string; customer_id: string; customers?: { name: string } | null };
 type SaleItem = { sale_id: string; amount: number; quantity: number; product_id: string };
@@ -22,12 +26,39 @@ export default function Sales() {
   const [busy, setBusy] = useState(false);
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
   const [saleDetails, setSaleDetails] = useState<Map<string, SaleItemDetail[]>>(new Map());
+  const [filterCustomer, setFilterCustomer] = useState<string>("");
+  const [filterMode, setFilterMode] = useState<"all" | "year" | "custom">("all");
+  const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
+  const [filterType, setFilterType] = useState<"date" | "week" | "month">("date");
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    let salesQuery = supabase.from("sales").select("id,date,customer_id,customers(name)").order("date", { ascending: false });
+
+    // Apply date filters
+    if (filterMode === "year") {
+      const now = new Date();
+      salesQuery = salesQuery.gte("date", format(startOfYear(now), "yyyy-MM-dd")).lte("date", format(endOfYear(now), "yyyy-MM-dd"));
+    } else if (filterMode === "custom" && filterDate) {
+      if (filterType === "date") {
+        salesQuery = salesQuery.eq("date", format(filterDate, "yyyy-MM-dd"));
+      } else if (filterType === "week") {
+        salesQuery = salesQuery.gte("date", format(startOfWeek(filterDate, { weekStartsOn: 1 }), "yyyy-MM-dd")).lte("date", format(endOfWeek(filterDate, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+      } else if (filterType === "month") {
+        salesQuery = salesQuery.gte("date", format(startOfMonth(filterDate), "yyyy-MM-dd")).lte("date", format(endOfMonth(filterDate), "yyyy-MM-dd"));
+      }
+    } else {
+      salesQuery = salesQuery.limit(50);
+    }
+
+    // Apply customer filter
+    if (filterCustomer) {
+      salesQuery = salesQuery.eq("customer_id", filterCustomer);
+    }
+
     const [{ data: c, error: ce }, { data: p, error: pe }, { data: s, error: se }, { data: si, error: sie }] = await Promise.all([
       supabase.from("customers").select("id,name,phone,address").order("created_at", { ascending: true }),
       supabase.from("products").select("id,name,rate,unit,offer_buy_qty,offer_free_qty").order("created_at", { ascending: true }),
-      supabase.from("sales").select("id,date,customer_id,customers(name)").order("date", { ascending: false }).limit(30),
+      salesQuery,
       supabase.from("sale_items").select("sale_id,amount,quantity,product_id"),
     ]);
     const error = ce || pe || se || sie;
@@ -53,7 +84,7 @@ export default function Sales() {
     setSaleDetails(detailMap);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [filterMode, filterDate, filterType, filterCustomer]);
   const billedQty = (p: Product, q: number) => {
     const buy = Number(p.offer_buy_qty) || 0;
     const free = Number(p.offer_free_qty) || 0;
@@ -169,6 +200,78 @@ export default function Sales() {
         </section>
         <aside className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5 h-fit">
           <h2 className="font-display text-xl text-ink mb-4">Recent sales</h2>
+
+          {/* Customer filter */}
+          <div className="mb-3">
+            <select
+              value={filterCustomer}
+              onChange={(e) => setFilterCustomer(e.target.value)}
+              className="input w-full text-sm"
+            >
+              <option value="">All customers</option>
+              {(customers ?? []).map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Time filter buttons */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            <button
+              onClick={() => { setFilterMode("all"); setFilterDate(undefined); }}
+              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${filterMode === "all" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => { setFilterMode("year"); setFilterDate(undefined); }}
+              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${filterMode === "year" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
+            >
+              This Year
+            </button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors inline-flex items-center gap-1 ${filterMode === "custom" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
+                >
+                  <CalendarIcon className="h-3 w-3" />
+                  {filterMode === "custom" && filterDate
+                    ? filterType === "date"
+                      ? format(filterDate, "dd MMM yyyy")
+                      : filterType === "week"
+                        ? `Week of ${format(startOfWeek(filterDate, { weekStartsOn: 1 }), "dd MMM")}`
+                        : format(filterDate, "MMM yyyy")
+                    : "Pick date"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <div className="flex gap-1 p-2 border-b border-border">
+                  {(["date", "week", "month"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setFilterType(t)}
+                      className={`px-2 py-1 text-xs rounded font-medium capitalize ${filterType === t ? "bg-forest text-cream" : "bg-cream-d text-ink-3"}`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <Calendar
+                  mode="single"
+                  selected={filterDate}
+                  onSelect={(d) => {
+                    if (d) {
+                      setFilterDate(d);
+                      setFilterMode("custom");
+                    }
+                  }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
           {history === null ? (
             <TableSkeleton rows={4} cols={2} />
           ) : history.length === 0 ? (
