@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.png";
 
 const NAV = [
   {
@@ -90,11 +91,7 @@ export default function Sidebar() {
   const Body = (
     <aside className="w-[236px] shrink-0 bg-forest text-cream h-screen sticky top-0 flex flex-col border-r border-forest-xl/40">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-forest-xl/40">
-        <span className="text-2xl" aria-hidden>🐄</span>
-        <div>
-          <div className="font-display text-[22px] leading-none text-cream">DairyBook</div>
-          <div className="text-[11px] text-cream/60 mt-1">Distributor Ledger</div>
-        </div>
+        <img src={logo} alt="DairyBooks" className="h-9 w-auto brightness-0 invert" />
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3">
@@ -135,8 +132,7 @@ export default function Sidebar() {
       {/* Mobile top bar */}
       <div className="lg:hidden sticky top-0 z-40 bg-forest text-cream flex items-center justify-between px-4 h-14 border-b border-forest-xl/40">
         <div className="flex items-center gap-2">
-          <span className="text-xl" aria-hidden>🐄</span>
-          <span className="font-display text-lg">DairyBook</span>
+          <img src={logo} alt="DairyBooks" className="h-7 w-auto brightness-0 invert" />
         </div>
         <button
           onClick={() => setMobileOpen(true)}

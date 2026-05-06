@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { showApiError } from "@/lib/dairy";
+import logo from "@/assets/logo.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -61,8 +62,7 @@ export default function Auth() {
       {/* Left — brand canvas */}
       <div className="hidden lg:flex relative overflow-hidden bg-forest text-cream flex-col justify-between p-12">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">🐄</span>
-          <span className="font-display text-2xl">DairyBook</span>
+          <img src={logo} alt="DairyBooks" className="h-10 w-auto brightness-0 invert" />
         </div>
 
         <div className="relative z-10">
@@ -101,8 +101,7 @@ export default function Auth() {
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2 mb-8">
-            <span className="text-2xl">🐄</span>
-            <span className="font-display text-xl">DairyBook</span>
+            <img src={logo} alt="DairyBooks" className="h-8 w-auto" />
           </div>
 
           <h2 className="font-display text-3xl text-ink">
