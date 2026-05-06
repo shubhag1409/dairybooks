@@ -10,11 +10,11 @@
 @layer base {
   :root {
     /* Brand */
-    --forest:        148 38% 17%;   /* #1a3a2a */
-    --forest-l:      147 35% 22%;   /* #254d38 */
-    --forest-xl:     148 36% 28%;   /* #2e6147 */
-    --turmeric:      28 78% 44%;    /* #c8751a */
-    --turmeric-l:    27 76% 53%;    /* #e08830 */
+    --forest:        216 60% 16%;   /* #0f1d3a — deep navy */
+    --forest-l:      216 50% 22%;   /* #1b2d54 */
+    --forest-xl:     216 45% 28%;   /* #253d68 */
+    --turmeric:      213 80% 50%;   /* #1a6dd6 — brand blue */
+    --turmeric-l:    213 85% 58%;   /* #3b82f6 — bright blue */
 
     /* Surfaces */
     --cream:         42 35% 94%;    /* #f6f2eb */
