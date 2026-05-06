@@ -216,7 +216,7 @@ export default function Sales() {
           </div>
 
           {/* Time filter buttons */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             <button
               onClick={() => { setFilterMode("all"); setFilterDate(undefined); }}
               className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${filterMode === "all" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
@@ -229,39 +229,85 @@ export default function Sales() {
             >
               This Year
             </button>
+            {/* By Date */}
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors inline-flex items-center gap-1 ${filterMode === "custom" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
+                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors inline-flex items-center gap-1 ${filterMode === "custom" && filterType === "date" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
                 >
                   <CalendarIcon className="h-3 w-3" />
-                  {filterMode === "custom" && filterDate
-                    ? filterType === "date"
-                      ? format(filterDate, "dd MMM yyyy")
-                      : filterType === "week"
-                        ? `Week of ${format(startOfWeek(filterDate, { weekStartsOn: 1 }), "dd MMM")}`
-                        : format(filterDate, "MMM yyyy")
-                    : "Pick date"}
+                  {filterMode === "custom" && filterType === "date" && filterDate
+                    ? format(filterDate, "dd MMM yyyy")
+                    : "By Date"}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
-                <div className="flex gap-1 p-2 border-b border-border">
-                  {(["date", "week", "month"] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setFilterType(t)}
-                      className={`px-2 py-1 text-xs rounded font-medium capitalize ${filterType === t ? "bg-forest text-cream" : "bg-cream-d text-ink-3"}`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
                 <Calendar
                   mode="single"
                   selected={filterDate}
                   onSelect={(d) => {
                     if (d) {
                       setFilterDate(d);
+                      setFilterType("date");
+                      setFilterMode("custom");
+                    }
+                  }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+            {/* By Week */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors inline-flex items-center gap-1 ${filterMode === "custom" && filterType === "week" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
+                >
+                  <CalendarIcon className="h-3 w-3" />
+                  {filterMode === "custom" && filterType === "week" && filterDate
+                    ? `${format(startOfWeek(filterDate, { weekStartsOn: 1 }), "dd MMM")} – ${format(endOfWeek(filterDate, { weekStartsOn: 1 }), "dd MMM")}`
+                    : "By Week"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <p className="text-xs text-ink-3 px-3 pt-2">Pick any day to select its week (Mon–Sun)</p>
+                <Calendar
+                  mode="single"
+                  selected={filterDate}
+                  onSelect={(d) => {
+                    if (d) {
+                      // Store the Monday of the selected week so display matches query
+                      setFilterDate(startOfWeek(d, { weekStartsOn: 1 }));
+                      setFilterType("week");
+                      setFilterMode("custom");
+                    }
+                  }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+            {/* By Month */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors inline-flex items-center gap-1 ${filterMode === "custom" && filterType === "month" ? "bg-forest text-cream" : "bg-cream-d text-ink-3 hover:text-ink"}`}
+                >
+                  <CalendarIcon className="h-3 w-3" />
+                  {filterMode === "custom" && filterType === "month" && filterDate
+                    ? format(filterDate, "MMM yyyy")
+                    : "By Month"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <p className="text-xs text-ink-3 px-3 pt-2">Pick any day to select its month</p>
+                <Calendar
+                  mode="single"
+                  selected={filterDate}
+                  onSelect={(d) => {
+                    if (d) {
+                      setFilterDate(startOfMonth(d));
+                      setFilterType("month");
                       setFilterMode("custom");
                     }
                   }}
@@ -271,6 +317,17 @@ export default function Sales() {
               </PopoverContent>
             </Popover>
           </div>
+          {/* Active filter label */}
+          {filterMode === "custom" && filterDate && (
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-xs text-ink-3">
+                Showing: {filterType === "date" && format(filterDate, "dd MMM yyyy")}
+                {filterType === "week" && `${format(filterDate, "dd MMM")} – ${format(endOfWeek(filterDate, { weekStartsOn: 1 }), "dd MMM yyyy")}`}
+                {filterType === "month" && format(filterDate, "MMMM yyyy")}
+              </span>
+              <button onClick={() => { setFilterMode("all"); setFilterDate(undefined); }} className="text-xs text-danger hover:underline">Clear</button>
+            </div>
+          )}
 
           {history === null ? (
             <TableSkeleton rows={4} cols={2} />
