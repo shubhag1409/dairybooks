@@ -389,6 +389,7 @@ export type Database = {
           customer_id: string
           date: string
           id: string
+          method: string
           note: string | null
           sale_id: string | null
           user_id: string
@@ -399,6 +400,7 @@ export type Database = {
           customer_id: string
           date?: string
           id?: string
+          method?: string
           note?: string | null
           sale_id?: string | null
           user_id: string
@@ -409,6 +411,7 @@ export type Database = {
           customer_id?: string
           date?: string
           id?: string
+          method?: string
           note?: string | null
           sale_id?: string | null
           user_id?: string
