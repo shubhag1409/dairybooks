@@ -10,7 +10,7 @@ import { Customer, getUserId, inr, showApiError, todayISO , safeErrorToast } fro
 type SaleRow = { id: string; date: string; customer_id: string };
 type SaleItemRow = { sale_id: string; quantity: number; amount: number; product_id: string };
 type ProductRow = { id: string; name: string; unit: string };
-type PaymentRow = { id: string; sale_id: string | null; customer_id: string; amount: number; date: string; note: string | null };
+type PaymentRow = { id: string; sale_id: string | null; customer_id: string; amount: number; date: string; note: string | null; method: string };
 type CrateRow = { id: string; customer_id: string; date: string; given: number; returned: number; note: string | null };
 
 type LedgerLine = {
@@ -37,6 +37,7 @@ export default function Ledger() {
   const [payDate, setPayDate] = useState(todayISO());
   const [paySaleId, setPaySaleId] = useState<string>("");
   const [payNote, setPayNote] = useState("");
+  const [payMethod, setPayMethod] = useState<"cash" | "online">("cash");
   const [busy, setBusy] = useState(false);
 
   // Crate-entry form
@@ -66,7 +67,7 @@ export default function Ledger() {
     setLoadingDetail(true);
     const [{ data: s, error: se }, { data: p, error: pe }, { data: pr, error: pre }, { data: cc, error: cce }] = await Promise.all([
       supabase.from("sales").select("id,date,customer_id").eq("customer_id", customerId).order("date", { ascending: false }),
-      supabase.from("sale_payments").select("id,sale_id,customer_id,amount,date,note").eq("customer_id", customerId).order("date", { ascending: false }),
+      supabase.from("sale_payments").select("id,sale_id,customer_id,amount,date,note,method").eq("customer_id", customerId).order("date", { ascending: false }),
       supabase.from("products").select("id,name,unit"),
       supabase.from("customer_crates").select("id,customer_id,date,given,returned,note").eq("customer_id", customerId).order("date", { ascending: false }),
     ]);
@@ -184,6 +185,7 @@ export default function Ledger() {
         amount: amt,
         date: payDate,
         note: payNote || null,
+        method: payMethod,
       });
       if (error) throw error;
       toast.success("Payment recorded");
@@ -250,12 +252,18 @@ export default function Ledger() {
                 <Wallet className="h-4 w-4 text-forest" />
                 <h2 className="font-display text-lg sm:text-xl text-ink">Record payment{selectedCustomer ? ` from ${selectedCustomer.name}` : ""}</h2>
               </div>
-              <div className="grid grid-cols-2 lg:grid-cols-[140px_140px_1fr_160px_auto] gap-3 items-end">
+              <div className="grid grid-cols-2 lg:grid-cols-[140px_140px_140px_1fr_160px_auto] gap-3 items-end">
                 <Field label="Date">
                   <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} className="input w-full" />
                 </Field>
                 <Field label="Amount (₹)">
                   <input type="number" min="0" step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="input w-full text-right font-tabular" placeholder="0" />
+                </Field>
+                <Field label="Method">
+                  <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as "cash" | "online")} className="input w-full">
+                    <option value="cash">💵 Cash</option>
+                    <option value="online">📱 Online</option>
+                  </select>
                 </Field>
                 <Field label="Apply to bill (optional)" className="col-span-2 lg:col-span-1">
                   <select value={paySaleId} onChange={(e) => setPaySaleId(e.target.value)} className="input w-full">
@@ -335,6 +343,9 @@ export default function Ledger() {
                         <div>
                           <div className="text-sm text-ink font-tabular">
                             {p.date} · <span className="font-semibold">{inr(Number(p.amount))}</span>
+                            <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${p.method === "online" ? "bg-turmeric/20 text-ink" : "bg-forest/15 text-forest"}`}>
+                              {p.method === "online" ? "Online" : "Cash"}
+                            </span>
                           </div>
                           <div className="text-xs text-ink-3">
                             {linkedSale ? `Bill ${linkedSale.date}` : "General payment"}
