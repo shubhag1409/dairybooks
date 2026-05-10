@@ -21,6 +21,7 @@ const NAV = [
       { to: "/sales", label: "Sales Tracking", icon: "🧾" },
       { to: "/crates", label: "Crate Management", icon: "🟩" },
       { to: "/ledger", label: "Customer Ledger", icon: "📒" },
+      { to: "/cash", label: "Cash Tracking", icon: "💵" },
       { to: "/expenses", label: "Expenses", icon: "💸" },
       { to: "/inventory", label: "Inventory", icon: "📋" },
       { to: "/tagada", label: "Tagada (Dues)", icon: "💰" },
