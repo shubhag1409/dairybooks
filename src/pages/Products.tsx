@@ -227,6 +227,9 @@ function ProductModal({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [rate, setRate] = useState<string>(initial ? String(initial.rate) : "");
+  const [sellingPrice, setSellingPrice] = useState<string>(
+    initial ? String(initial.selling_price ?? initial.rate) : ""
+  );
   const [unit, setUnit] = useState<string>(
     initial && (UNITS as readonly string[]).includes(initial.unit) ? initial.unit : "pouch"
   );
@@ -257,6 +260,8 @@ function ProductModal({
     if (!trimmed) return toast.error("Name is required");
     const r = Number(rate);
     if (!Number.isFinite(r) || r < 0) return toast.error("Rate must be a positive number");
+    const sp = Number(sellingPrice);
+    if (!Number.isFinite(sp) || sp < 0) return toast.error("Selling price must be a positive number");
     const hsnTrim = hsn.trim();
     if (hsnTrim && !/^[0-9]{4,8}$/.test(hsnTrim)) {
       return toast.error("HSN code must be 4–8 digits");
@@ -292,6 +297,7 @@ function ProductModal({
           .update({
             name: trimmed,
             rate: r,
+            selling_price: sp,
             unit,
             taxed,
             hsn_code: hsnTrim || null,
@@ -310,6 +316,7 @@ function ProductModal({
           .insert({
             name: trimmed,
             rate: r,
+            selling_price: sp,
             unit,
             taxed,
             hsn_code: hsnTrim || null,
