@@ -15,6 +15,7 @@ type Product = {
   id: string;
   name: string;
   rate: number;
+  selling_price: number;
   unit: string;
   created_at: string;
   taxed: boolean;
@@ -109,7 +110,11 @@ export default function Products() {
                 <div className="min-w-0">
                   <div className="text-[11px] text-ink-4 font-tabular">#{i + 1}</div>
                   <div className="font-medium text-ink">{p.name}</div>
-                  <div className="text-sm font-tabular text-ink-2 mt-1">₹{Number(p.rate).toFixed(2)} <span className="text-ink-3">· per {p.unit}</span></div>
+                  <div className="text-sm font-tabular text-ink-2 mt-1">
+                    Sell ₹{Number(p.selling_price ?? p.rate).toFixed(2)}
+                    <span className="text-ink-3"> · per {p.unit}</span>
+                  </div>
+                  <div className="text-xs text-ink-3 font-tabular mt-0.5">Cost ₹{Number(p.rate).toFixed(2)}</div>
                   {p.hsn_code && <div className="text-xs text-ink-3 mt-0.5 font-tabular">HSN: {p.hsn_code}</div>}
                   {p.offer_buy_qty && p.offer_free_qty && (
                     <div className="text-xs text-turmeric mt-0.5">
@@ -132,7 +137,8 @@ export default function Products() {
                   <Th className="w-14">#</Th>
                   <Th>Product</Th>
                   <Th>HSN</Th>
-                  <Th className="text-right">Rate</Th>
+                  <Th className="text-right">Cost price</Th>
+                  <Th className="text-right">Selling price</Th>
                   <Th>Unit</Th>
                   <Th>Offer</Th>
                   <Th className="text-right w-32">Actions</Th>
@@ -146,6 +152,9 @@ export default function Products() {
                     <Td className="text-ink-3 font-tabular">{p.hsn_code || "—"}</Td>
                     <Td className="text-right font-tabular text-ink">
                       ₹{Number(p.rate).toFixed(2)}
+                    </Td>
+                    <Td className="text-right font-tabular text-ink">
+                      ₹{Number(p.selling_price ?? p.rate).toFixed(2)}
                     </Td>
                     <Td className="text-ink-3">per {p.unit}</Td>
                     <Td className="text-ink-3 font-tabular">
