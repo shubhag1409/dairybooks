@@ -33,7 +33,7 @@ const QUICK = [
   { to: "/reports", icon: "📊", title: "Reports & Export", desc: "Download or email a monthly Excel report." },
 ];
 
-type Stats = { products: number; customers: number; purchases: number; sales: number };
+type Stats = { products: number; customers: number; purchases: number; sales: number; profit: number };
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -45,7 +45,7 @@ export default function Dashboard() {
     let alive = true;
     (async () => {
       const { start, end } = monthRange();
-      const [{ count: products }, { count: customers }, purchases, sales, purchaseAgg, saleAgg] = await Promise.all([
+      const [{ count: products }, { count: customers }, purchases, sales, purchaseAgg, saleAgg, productsAgg] = await Promise.all([
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("customers").select("id", { count: "exact", head: true }),
         supabase.from("purchases").select("id").gte("date", start).lt("date", end),
@@ -55,20 +55,30 @@ export default function Dashboard() {
           .select("price,purchase_id"),
         supabase
           .from("sale_items")
-          .select("amount,sale_id"),
+          .select("amount,sale_id,product_id,quantity"),
+        supabase.from("products").select("id,rate"),
       ]);
       if (!alive) return;
-      const error = purchases.error || sales.error || purchaseAgg.error || saleAgg.error;
-      if (showApiError(error, "Could not load dashboard data")) setStats({ products: 0, customers: 0, purchases: 0, sales: 0 });
+      const error = purchases.error || sales.error || purchaseAgg.error || saleAgg.error || productsAgg.error;
+      if (showApiError(error, "Could not load dashboard data")) setStats({ products: 0, customers: 0, purchases: 0, sales: 0, profit: 0 });
       const purchaseIds = new Set((purchases.data ?? []).map((p: any) => p.id));
       const saleIds = new Set((sales.data ?? []).map((s: any) => s.id));
       const purchaseTotal = (purchaseAgg.data ?? []).filter((r: any) => purchaseIds.has(r.purchase_id)).reduce((s: number, r: any) => s + Number(r.price || 0), 0);
-      const salesTotal = (saleAgg.data ?? []).filter((r: any) => saleIds.has(r.sale_id)).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const monthSaleItems = (saleAgg.data ?? []).filter((r: any) => saleIds.has(r.sale_id));
+      const salesTotal = monthSaleItems.reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
+      const costMap = new Map<string, number>();
+      (productsAgg.data ?? []).forEach((p: any) => costMap.set(p.id, Number(p.rate || 0)));
+      const costOfGoods = monthSaleItems.reduce(
+        (s: number, r: any) => s + Number(r.quantity || 0) * (costMap.get(r.product_id) ?? 0),
+        0,
+      );
+      const profit = salesTotal - costOfGoods;
       setStats({
         products: products ?? 0,
         customers: customers ?? 0,
         purchases: purchaseTotal,
         sales: salesTotal,
+        profit,
       });
     })();
     return () => { alive = false; };
@@ -79,6 +89,7 @@ export default function Dashboard() {
     { label: "Customers", value: stats.customers.toString(), hint: "active shops" },
     { label: "Purchases · this month", value: `₹${inr(stats.purchases)}`, hint: "from company" },
     { label: "Sales · this month", value: `₹${inr(stats.sales)}`, hint: "billed to customers" },
+    { label: "Profit · this month", value: `₹${inr(stats.profit)}`, hint: "sales − cost of goods sold" },
   ];
 
   return (
