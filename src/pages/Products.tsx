@@ -343,7 +343,7 @@ function ProductModal({
         <h3 className="font-display text-2xl text-ink">
           {initial ? "Edit product" : "Add product"}
         </h3>
-        <p className="text-sm text-ink-3 mt-1">Name, rate and unit.</p>
+        <p className="text-sm text-ink-3 mt-1">Name, cost &amp; selling price, and unit.</p>
 
         <form onSubmit={submit} className="mt-5 space-y-4">
           <Field label="Product name">
@@ -356,7 +356,7 @@ function ProductModal({
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Rate (₹)">
+            <Field label="Cost price (₹)">
               <input
                 type="number"
                 inputMode="decimal"
@@ -374,6 +374,18 @@ function ProductModal({
               </select>
             </Field>
           </div>
+          <Field label="Selling price (₹) — default; can be changed per sale">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={sellingPrice}
+              onChange={(e) => setSellingPrice(e.target.value)}
+              className="input font-tabular"
+              placeholder="0.00"
+            />
+          </Field>
 
           <Field label="HSN code (optional)">
             <input
