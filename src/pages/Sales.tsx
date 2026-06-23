@@ -22,6 +22,7 @@ export default function Sales() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [qty, setQty] = useState<Record<string, string>>({});
+  const [priceOverride, setPriceOverride] = useState<Record<string, string>>({});
   const [history, setHistory] = useState<(Sale & { total: number })[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [expandedSale, setExpandedSale] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export default function Sales() {
 
     const [{ data: c, error: ce }, { data: p, error: pe }, { data: s, error: se }, { data: si, error: sie }] = await Promise.all([
       supabase.from("customers").select("id,name,phone,address").order("created_at", { ascending: true }),
-      supabase.from("products").select("id,name,rate,unit,offer_buy_qty,offer_free_qty").order("created_at", { ascending: true }),
+      supabase.from("products").select("id,name,rate,selling_price,unit,offer_buy_qty,offer_free_qty").order("created_at", { ascending: true }),
       salesQuery,
       supabase.from("sale_items").select("sale_id,amount,quantity,product_id"),
     ]);
@@ -98,10 +99,15 @@ export default function Sales() {
   const total = useMemo(
     () =>
       (products ?? []).reduce(
-        (sum, p) => sum + billedQty(p, Number(qty[p.id]) || 0) * Number(p.rate || 0),
+        (sum, p) => {
+          const sp = priceOverride[p.id] !== undefined && priceOverride[p.id] !== ""
+            ? Number(priceOverride[p.id])
+            : Number(p.selling_price ?? p.rate ?? 0);
+          return sum + billedQty(p, Number(qty[p.id]) || 0) * (Number.isFinite(sp) ? sp : 0);
+        },
         0,
       ),
-    [products, qty],
+    [products, qty, priceOverride],
   );
 
   const chooseCustomer = (customer: Customer) => { setSelected(customer); setStep(3); };
@@ -109,11 +115,17 @@ export default function Sales() {
   const save = async () => {
     if (!selected) return toast.error("Pick a customer");
     const lines = (products ?? [])
-      .map((p) => ({ product: p, quantity: Number(qty[p.id]) || 0 }))
+      .map((p) => {
+        const ov = priceOverride[p.id];
+        const unitPrice = ov !== undefined && ov !== "" ? Number(ov) : Number(p.selling_price ?? p.rate ?? 0);
+        return { product: p, quantity: Number(qty[p.id]) || 0, unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0 };
+      })
       .filter((x) => x.quantity > 0);
     if (lines.length === 0) return toast.error("Enter at least one sale quantity");
     const bad = lines.find((x) => !Number.isInteger(x.quantity));
     if (bad) return toast.error("Quantities must be whole numbers");
+    const badPrice = lines.find((x) => x.unitPrice < 0);
+    if (badPrice) return toast.error("Selling price cannot be negative");
     setBusy(true);
     try {
       const userId = await getUserId();
@@ -145,11 +157,12 @@ export default function Sales() {
         saleId = sale.id;
       }
 
-      const { error: itemError } = await supabase.from("sale_items").insert(lines.map(({ product, quantity }) => ({
+      const { error: itemError } = await supabase.from("sale_items").insert(lines.map(({ product, quantity, unitPrice }) => ({
         sale_id: saleId,
         product_id: product.id,
         quantity,
-        amount: billedQty(product, quantity) * Number(product.rate || 0),
+        unit_price: unitPrice,
+        amount: billedQty(product, quantity) * unitPrice,
         user_id: userId,
       })));
       if (itemError) throw itemError;
@@ -167,6 +180,7 @@ export default function Sales() {
       }));
       await supabase.from("inventory_adjustments").insert(adjustments);
       setQty({});
+      setPriceOverride({});
       setStep(2);
       load();
     } catch (err: any) {
