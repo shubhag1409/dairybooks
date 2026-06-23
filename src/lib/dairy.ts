@@ -43,6 +43,7 @@ export type Product = {
   name: string;
   rate: number;
   unit: string;
+  selling_price?: number;
   offer_buy_qty?: number | null;
   offer_free_qty?: number | null;
 };

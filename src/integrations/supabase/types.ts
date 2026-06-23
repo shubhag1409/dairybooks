@@ -242,6 +242,7 @@ export type Database = {
           offer_free_product_id: string | null
           offer_free_qty: number | null
           rate: number
+          selling_price: number
           taxed: boolean
           unit: string
           user_id: string
@@ -255,6 +256,7 @@ export type Database = {
           offer_free_product_id?: string | null
           offer_free_qty?: number | null
           rate?: number
+          selling_price?: number
           taxed?: boolean
           unit?: string
           user_id: string
@@ -268,6 +270,7 @@ export type Database = {
           offer_free_product_id?: string | null
           offer_free_qty?: number | null
           rate?: number
+          selling_price?: number
           taxed?: boolean
           unit?: string
           user_id?: string
@@ -347,6 +350,7 @@ export type Database = {
           product_id: string
           quantity: number
           sale_id: string
+          unit_price: number
           user_id: string
         }
         Insert: {
@@ -355,6 +359,7 @@ export type Database = {
           product_id: string
           quantity?: number
           sale_id: string
+          unit_price?: number
           user_id: string
         }
         Update: {
@@ -363,6 +368,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           sale_id?: string
+          unit_price?: number
           user_id?: string
         }
         Relationships: [

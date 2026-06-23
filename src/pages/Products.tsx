@@ -15,6 +15,7 @@ type Product = {
   id: string;
   name: string;
   rate: number;
+  selling_price: number;
   unit: string;
   created_at: string;
   taxed: boolean;
@@ -109,7 +110,11 @@ export default function Products() {
                 <div className="min-w-0">
                   <div className="text-[11px] text-ink-4 font-tabular">#{i + 1}</div>
                   <div className="font-medium text-ink">{p.name}</div>
-                  <div className="text-sm font-tabular text-ink-2 mt-1">₹{Number(p.rate).toFixed(2)} <span className="text-ink-3">· per {p.unit}</span></div>
+                  <div className="text-sm font-tabular text-ink-2 mt-1">
+                    Sell ₹{Number(p.selling_price ?? p.rate).toFixed(2)}
+                    <span className="text-ink-3"> · per {p.unit}</span>
+                  </div>
+                  <div className="text-xs text-ink-3 font-tabular mt-0.5">Cost ₹{Number(p.rate).toFixed(2)}</div>
                   {p.hsn_code && <div className="text-xs text-ink-3 mt-0.5 font-tabular">HSN: {p.hsn_code}</div>}
                   {p.offer_buy_qty && p.offer_free_qty && (
                     <div className="text-xs text-turmeric mt-0.5">
@@ -132,7 +137,8 @@ export default function Products() {
                   <Th className="w-14">#</Th>
                   <Th>Product</Th>
                   <Th>HSN</Th>
-                  <Th className="text-right">Rate</Th>
+                  <Th className="text-right">Cost price</Th>
+                  <Th className="text-right">Selling price</Th>
                   <Th>Unit</Th>
                   <Th>Offer</Th>
                   <Th className="text-right w-32">Actions</Th>
@@ -146,6 +152,9 @@ export default function Products() {
                     <Td className="text-ink-3 font-tabular">{p.hsn_code || "—"}</Td>
                     <Td className="text-right font-tabular text-ink">
                       ₹{Number(p.rate).toFixed(2)}
+                    </Td>
+                    <Td className="text-right font-tabular text-ink">
+                      ₹{Number(p.selling_price ?? p.rate).toFixed(2)}
                     </Td>
                     <Td className="text-ink-3">per {p.unit}</Td>
                     <Td className="text-ink-3 font-tabular">
@@ -218,6 +227,9 @@ function ProductModal({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [rate, setRate] = useState<string>(initial ? String(initial.rate) : "");
+  const [sellingPrice, setSellingPrice] = useState<string>(
+    initial ? String(initial.selling_price ?? initial.rate) : ""
+  );
   const [unit, setUnit] = useState<string>(
     initial && (UNITS as readonly string[]).includes(initial.unit) ? initial.unit : "pouch"
   );
@@ -248,6 +260,8 @@ function ProductModal({
     if (!trimmed) return toast.error("Name is required");
     const r = Number(rate);
     if (!Number.isFinite(r) || r < 0) return toast.error("Rate must be a positive number");
+    const sp = Number(sellingPrice);
+    if (!Number.isFinite(sp) || sp < 0) return toast.error("Selling price must be a positive number");
     const hsnTrim = hsn.trim();
     if (hsnTrim && !/^[0-9]{4,8}$/.test(hsnTrim)) {
       return toast.error("HSN code must be 4–8 digits");
@@ -283,6 +297,7 @@ function ProductModal({
           .update({
             name: trimmed,
             rate: r,
+            selling_price: sp,
             unit,
             taxed,
             hsn_code: hsnTrim || null,
@@ -301,6 +316,7 @@ function ProductModal({
           .insert({
             name: trimmed,
             rate: r,
+            selling_price: sp,
             unit,
             taxed,
             hsn_code: hsnTrim || null,
@@ -327,7 +343,7 @@ function ProductModal({
         <h3 className="font-display text-2xl text-ink">
           {initial ? "Edit product" : "Add product"}
         </h3>
-        <p className="text-sm text-ink-3 mt-1">Name, rate and unit.</p>
+        <p className="text-sm text-ink-3 mt-1">Name, cost &amp; selling price, and unit.</p>
 
         <form onSubmit={submit} className="mt-5 space-y-4">
           <Field label="Product name">
@@ -340,7 +356,7 @@ function ProductModal({
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Rate (₹)">
+            <Field label="Cost price (₹)">
               <input
                 type="number"
                 inputMode="decimal"
@@ -358,6 +374,18 @@ function ProductModal({
               </select>
             </Field>
           </div>
+          <Field label="Selling price (₹) — default; can be changed per sale">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={sellingPrice}
+              onChange={(e) => setSellingPrice(e.target.value)}
+              className="input font-tabular"
+              placeholder="0.00"
+            />
+          </Field>
 
           <Field label="HSN code (optional)">
             <input
