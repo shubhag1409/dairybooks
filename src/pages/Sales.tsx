@@ -210,7 +210,97 @@ export default function Sales() {
           </div>
           {step === 1 && <div className="max-w-sm"><h2 className="font-display text-2xl text-ink mb-2">Pick sale date</h2><p className="text-sm text-ink-3 mb-5">This date applies to every customer bill you enter next.</p><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input" /><button onClick={() => setStep(2)} className="mt-4 h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press">Continue</button></div>}
           {step === 2 && (customers === null ? <CustomerGridSkeleton /> : customers.length === 0 ? <EmptyState icon="👥" title="Add customers first" description="Sales entry needs customers on your route." /> : <><button onClick={() => setStep(1)} className="mb-4 text-sm text-ink-3 hover:text-forest inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" />Change date</button><div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">{customers.map((c) => <button key={c.id} onClick={() => chooseCustomer(c)} className="text-left border border-border rounded-lg p-4 bg-cream-d/30 hover:border-turmeric/50 hover:bg-card lift"><div className="font-medium text-ink">{c.name}</div><div className="text-xs text-ink-3 mt-1">{c.phone || c.address || "No details"}</div></button>)}</div></>)}
-          {step === 3 && (!selected || products === null ? <TableSkeleton rows={5} cols={4} /> : products.length === 0 ? <EmptyState icon="🥛" title="Add products first" /> : <><button onClick={() => setStep(2)} className="mb-4 text-sm text-ink-3 hover:text-forest inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" />Back to customers</button><div className="mb-5"><h2 className="font-display text-xl sm:text-2xl text-ink">{selected.name}</h2><p className="text-sm text-ink-3">Sale date: {date}</p></div><div className="overflow-x-auto -mx-4 sm:mx-0 border-y sm:border border-border sm:rounded-lg"><table className="w-full min-w-[480px]"><thead className="bg-forest text-cream"><tr><Th>Product</Th><Th className="text-right">Rate</Th><Th className="text-right">Qty</Th><Th className="text-right">Amount</Th></tr></thead><tbody>{products.map((p) => { const q = Number(qty[p.id]) || 0; const billed = billedQty(p, q); const free = q - billed; return <tr key={p.id} className="border-t border-border-l"><Td className="font-medium text-ink">{p.name}{p.offer_buy_qty && p.offer_free_qty ? <div className="text-xs text-turmeric font-normal mt-0.5">Buy {p.offer_buy_qty} get {p.offer_free_qty} free</div> : null}</Td><Td className="text-right font-tabular">{inr(Number(p.rate))}</Td><Td className="text-right"><input value={qty[p.id] ?? ""} onChange={(e) => { const v = e.target.value; if (v === "" || /^\d+$/.test(v)) setQty((old) => ({ ...old, [p.id]: v })); }} type="number" min="0" step="1" inputMode="numeric" className="input text-right font-tabular w-20 sm:w-28" placeholder="0" />{free > 0 ? <div className="text-[11px] text-ink-3 mt-1">+{free} free</div> : null}</Td><Td className="text-right font-tabular text-ink">{inr(billed * Number(p.rate || 0))}</Td></tr>; })}</tbody></table></div><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs uppercase tracking-wider text-ink-3 font-semibold">Bill total</div><div className="font-tabular text-2xl text-ink">{inr(total)}</div></div><button onClick={save} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60 inline-flex items-center gap-2"><Save className="h-4 w-4" />{busy ? "Saving…" : "Save sale"}</button></div></>)}
+          {step === 3 && (!selected || products === null ? (
+            <TableSkeleton rows={5} cols={4} />
+          ) : products.length === 0 ? (
+            <EmptyState icon="🥛" title="Add products first" />
+          ) : (
+            <>
+              <button onClick={() => setStep(2)} className="mb-4 text-sm text-ink-3 hover:text-forest inline-flex items-center gap-1">
+                <ArrowLeft className="h-4 w-4" />Back to customers
+              </button>
+              <div className="mb-5">
+                <h2 className="font-display text-xl sm:text-2xl text-ink">{selected.name}</h2>
+                <p className="text-sm text-ink-3">Sale date: {date}</p>
+                <p className="text-xs text-ink-3 mt-1">Tip: you can change the selling price for this sale below — the default is taken from each product.</p>
+              </div>
+              <div className="overflow-x-auto -mx-4 sm:mx-0 border-y sm:border border-border sm:rounded-lg">
+                <table className="w-full min-w-[560px]">
+                  <thead className="bg-forest text-cream">
+                    <tr>
+                      <Th>Product</Th>
+                      <Th className="text-right">Selling price</Th>
+                      <Th className="text-right">Qty</Th>
+                      <Th className="text-right">Amount</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((p) => {
+                      const q = Number(qty[p.id]) || 0;
+                      const billed = billedQty(p, q);
+                      const free = q - billed;
+                      const defaultPrice = Number(p.selling_price ?? p.rate ?? 0);
+                      const priceRaw = priceOverride[p.id];
+                      const usedPrice = priceRaw !== undefined && priceRaw !== "" ? Number(priceRaw) : defaultPrice;
+                      return (
+                        <tr key={p.id} className="border-t border-border-l">
+                          <Td className="font-medium text-ink">
+                            {p.name}
+                            {p.offer_buy_qty && p.offer_free_qty ? (
+                              <div className="text-xs text-turmeric font-normal mt-0.5">
+                                Buy {p.offer_buy_qty} get {p.offer_free_qty} free
+                              </div>
+                            ) : null}
+                          </Td>
+                          <Td className="text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              value={priceRaw ?? String(defaultPrice)}
+                              onChange={(e) => setPriceOverride((old) => ({ ...old, [p.id]: e.target.value }))}
+                              className="input text-right font-tabular w-20 sm:w-24"
+                              placeholder={String(defaultPrice)}
+                            />
+                            {priceRaw !== undefined && priceRaw !== "" && Number(priceRaw) !== defaultPrice ? (
+                              <div className="text-[11px] text-turmeric mt-1">default ₹{defaultPrice.toFixed(2)}</div>
+                            ) : null}
+                          </Td>
+                          <Td className="text-right">
+                            <input
+                              value={qty[p.id] ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === "" || /^\d+$/.test(v)) setQty((old) => ({ ...old, [p.id]: v }));
+                              }}
+                              type="number"
+                              min="0"
+                              step="1"
+                              inputMode="numeric"
+                              className="input text-right font-tabular w-20 sm:w-24"
+                              placeholder="0"
+                            />
+                            {free > 0 ? <div className="text-[11px] text-ink-3 mt-1">+{free} free</div> : null}
+                          </Td>
+                          <Td className="text-right font-tabular text-ink">{inr(billed * usedPrice)}</Td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-ink-3 font-semibold">Bill total</div>
+                  <div className="font-tabular text-2xl text-ink">{inr(total)}</div>
+                </div>
+                <button onClick={save} disabled={busy} className="h-10 px-5 rounded-md bg-forest text-cream text-sm font-medium hover:bg-forest-l press disabled:opacity-60 inline-flex items-center gap-2">
+                  <Save className="h-4 w-4" />{busy ? "Saving…" : "Save sale"}
+                </button>
+              </div>
+            </>
+          ))}
         </section>
         <aside className="bg-card border border-border rounded-lg shadow-card p-4 sm:p-5 h-fit">
           <h2 className="font-display text-xl text-ink mb-4">Recent sales</h2>
