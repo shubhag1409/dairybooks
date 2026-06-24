@@ -2,6 +2,7 @@
  * Customers page — table + add/edit modal + delete confirm.
  */
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -192,6 +193,14 @@ function CustomerModal({
   const [aadhaar, setAadhaar] = useState(initial?.aadhaar_number ?? "");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
@@ -226,10 +235,10 @@ function CustomerModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] grid place-items-center p-4 overflow-hidden">
       <div className="absolute inset-0 bg-ink/45" onClick={onClose} />
-      <div className="modal-pop relative bg-card border border-border rounded-lg shadow-modal w-full max-w-md p-5 sm:p-6 max-h-[92vh] overflow-y-auto">
+      <div className="modal-pop relative bg-card border border-border rounded-lg shadow-modal w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6">
 
         <h3 className="font-display text-2xl text-ink">
           {initial ? "Edit customer" : "Add customer"}
@@ -327,7 +336,8 @@ function CustomerModal({
           textarea.cust-input { height: auto; }
         `}</style>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
